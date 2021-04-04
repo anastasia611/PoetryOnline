@@ -1,22 +1,21 @@
 <script>
-    import Word from "./Word.svelte";
-    import {debounce} from "./common/utils";
     import {isLetter, isPunctuationMark} from "./common/strings";
+    import Stanza from "./Stanza.svelte";
 
-    export let words = [];
+    export let stanzas = [];
 
     let newWord = '';
 
     const onKeyPress = e => {
-        if (e.key === "Enter" || isPunctuationMark(e.key)) {
+        if (e.key === "Enter" || e.key === " " || isPunctuationMark(e.key)) {
             setTimeout(() => {
                 if (newWord) {
-                    words.push(newWord);
+                    stanzas.push(newWord);
                 }
                 if (isPunctuationMark(e.key)) {
-                    words.push(e.key);
+                    stanzas.push(e.key);
                 }
-                words = words;
+                stanzas = stanzas;
                 newWord = '';
             }, 100);
         } else if (isLetter(e.key)) {
@@ -32,21 +31,14 @@
             e.target.setSelectionRange(pos, pos);
         }
     };
-
-    const removeWord = i => {
-        setTimeout(() => {
-            words.splice(i, 1);
-            words = words;
-        }, 150);
-    };
 </script>
 
 <main>
-    <h1>Стихотворение</h1>
     <div class="container" id="container1">
-        <div class="words">
-            {#each words as word, i}
-                <Word {word} on:removeWord={() => removeWord(i)}/>
+        <div class="poem">
+            <h1>Стихотворение</h1>
+            {#each stanzas as lines}
+               <Stanza {lines} />
             {/each}
             <div class="word-input">
                 <label for="word"></label>
@@ -55,10 +47,6 @@
                         class="word-input" id="word" maxlength="32" placeholder="введите слово.."
                         on:keydown|preventDefault={onKeyPress}
                         value={newWord}>
-            </div>
-            <div class="next-line-container">
-                <label for="next-line"></label>
-                <button id="next-line"></button>
             </div>
         </div>
     </div>
@@ -78,21 +66,20 @@
     }
 
     .container {
-        padding: 0 5rem;
-        display: inline-block;
+        /*padding: 0 5rem;
+        display: inline-block;*/
+        width: 75%;
+        background-color: white;
+
     }
 
-    .words {
-        display: inline-block;
-        max-width: 100%;
+    .poem {
+        display: flex;
         width: fit-content;
-        height: auto;
-        padding: 0.5rem;
-        position: relative;
-        border: 1px solid #ddd;
-        cursor: text;
-        background-color: #fff;
-        list-style: none;
+        flex-direction: column;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 1rem;
     }
 
     .word-input {
@@ -107,16 +94,6 @@
                 outline: none;
                 border: 1px solid #cccccc;
             }
-        }
-    }
-
-    .next-line-container {
-        display: inline-block;
-        float: right;
-
-        #next-line {
-            width: 1.5rem;
-            height: 1.5rem;
         }
     }
 
