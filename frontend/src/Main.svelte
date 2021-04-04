@@ -20,7 +20,8 @@
                 newWord = '';
             }, 100);
         } else if (isLetter(e.key)) {
-            newWord += e.key;
+            const pos = e.target.selectionStart;
+            newWord = newWord.substr(0, pos) + e.key + newWord.substr(pos, newWord.length);
         } else if (e.key === 'Backspace' || e.key === 'Delete') {
             newWord = newWord.substr(0, newWord.length - 1);
         } else if (e.key === 'ArrowLeft') {
