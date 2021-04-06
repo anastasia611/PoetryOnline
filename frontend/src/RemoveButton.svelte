@@ -1,10 +1,17 @@
 <script>
     export let title = 'Remove icon';
     export let size = 8;
+    import {createEventDispatcher} from 'svelte';
+
+    const dispatch = createEventDispatcher();
+    const onClick = () => {
+        dispatch('click');
+        console.log("EEEEE")
+    }
 </script>
 
 <!--TODO: move to button-->
-<span class="remove-container" on:click>
+<span class="remove-container" on:click={onClick}>
         <svg xmlns="http://www.w3.org/2000/svg" x="0px"
              y="0px" width={size} height={size} viewBox="0 0 503.021 503.021"
              style="enable-background:new 0 0 503.021 503.021;"

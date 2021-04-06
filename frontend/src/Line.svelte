@@ -1,15 +1,19 @@
 <script>
     import {createEventDispatcher} from 'svelte';
     import Word from "./Word.svelte";
-    import RemoveIcon from "./RemoveButton.svelte";
+    import RemoveButton from "./RemoveButton.svelte";
     import AddButton from "./AddButton.svelte";
-    import {remove} from "./common/arrays";
+    import {push, remove} from "./common/arrays";
+    import {isPunctuationMark} from "./common/strings";
 
     export let words = [];
 
+    $: wordsData = words.map(w => ({ word: w, editable: false }));
+
     const title = 'Удалить строку';
-    let invisible = true;
     const REMOVE_DELAY = 150;
+
+    let invisible = true;
 
     const dispatch = createEventDispatcher();
 
@@ -17,14 +21,31 @@
         dispatch('removeLine');
     };
 
-    const onAdd = () => {
+    const onAddLine = () => {
         dispatch('addLine');
+    };
+
+    const onAddWord = (e, i) => {
+        const newWord = e.detail.newWord;
+        const word = e.detail.word;
+
+        if (newWord) {
+            console.log('k', newWord)
+            let editable = !isPunctuationMark(newWord);
+            wordsData = push(wordsData, i + 1, { word: newWord === ' ' ? '' : newWord, editable });
+        }
+
+        if (word) {
+            wordsData[i] = { word: e.detail.word, editable: false };
+        } else {
+            removeWord(i);
+        }
     };
 
     const removeWord = i => {
         setTimeout(() => {
-            remove(words, i);
-            words = words;
+            remove(wordsData, i);
+            wordsData = wordsData;
         }, REMOVE_DELAY);
     };
 </script>
@@ -34,15 +55,16 @@
      on:mouseleave={() => invisible = true}>
 
     <div>
-        {#each words as word, i}
-            <Word {word} on:removeWord={() => removeWord(i)}/>
+        {#each wordsData as word, i}
+            <Word word={word.word} editable={word.editable}
+                  on:removeWord={() => removeWord(i)}
+                  on:addWord={e => onAddWord(e, i)}/>
         {/each}
     </div>
 
     <div class="right-menu" class:invisible>
-        <RemoveIcon size="10" {title} on:click={onRemove}/>
-
-      <AddButton on:click={onAdd}/>
+        <RemoveButton size="10" {title} on:click={onRemove}/>
+        <AddButton on:click={onAddLine}/>
     </div>
 </div>
 

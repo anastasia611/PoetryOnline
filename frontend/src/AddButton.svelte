@@ -3,12 +3,13 @@
     export let size = 8;
 </script>
 
-<!--TODO: move to button-->
-<label for="next-line"></label>
-<button id="next-line" on:click>+</button>
+<!--TODO: move to button, not unique id-->
+<label>
+    <button on:click>+</button>
+</label>
 
 <style lang="scss">
-    #next-line {
+    button {
         width: 1.5rem;
         height: 1.5rem;
         line-height: 1rem;

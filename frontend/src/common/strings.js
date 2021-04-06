@@ -1,4 +1,4 @@
-const punct = /[!?:;.,"()-—]/i;
+const punct = /[!"-:;—?-]/i;
 const letters = /[a-zA-zа-яА-Я]/i;
 
 export function isLetter(str) {
