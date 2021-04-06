@@ -1,3 +1,5 @@
+package model;
+
 public class Word {
     private String word;
     private String properties;

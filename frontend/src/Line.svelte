@@ -48,6 +48,10 @@
             wordsData = wordsData;
         }, REMOVE_DELAY);
     };
+
+    const onGetRhymes = () => {
+
+    };
 </script>
 
 <div class="line"
@@ -65,6 +69,7 @@
     <div class="right-menu" class:invisible>
         <RemoveButton size="10" {title} on:click={onRemove}/>
         <AddButton on:click={onAddLine}/>
+        <button on:click={onGetRhymes}>Get rhyme</button>
     </div>
 </div>
 

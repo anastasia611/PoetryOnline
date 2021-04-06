@@ -6,7 +6,7 @@ import java.nio.charset.StandardCharsets;
 
 public class Resource {
     public static String getFromResource(String fileName) throws IOException {
-        ClassLoader classLoader = Ryfma.class.getClassLoader();
+        ClassLoader classLoader = Main.class.getClassLoader();
         InputStream fileIn = classLoader.getResourceAsStream(fileName);
 
         try (InputStreamReader streamReader = new InputStreamReader(fileIn, StandardCharsets.UTF_8);

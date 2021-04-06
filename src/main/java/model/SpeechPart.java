@@ -1,3 +1,5 @@
+package model;
+
 public class SpeechPart {
     public static final String INFINITIVE = "ИНФ";
     public static final String NOUN = "СУЩЕСТВИТЕЛЬНОЕ";

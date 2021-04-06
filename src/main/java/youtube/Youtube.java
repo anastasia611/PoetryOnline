@@ -1,9 +1,8 @@
-import com.sapher.youtubedl.YoutubeDL;
+package youtube;
+
 import com.sapher.youtubedl.YoutubeDLException;
 import com.sapher.youtubedl.YoutubeDLRequest;
-import com.sapher.youtubedl.YoutubeDLResponse;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
+import model.WordEntry;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -17,7 +16,7 @@ import java.util.List;
 
 public class Youtube {
 
-    public static WordEntry[] getSubtitlesFromLib(String videoId) throws YoutubeDLException, URISyntaxException {
+    public static WordEntry[] getSubtitlesFromLib(String videoId, String path) throws YoutubeDLException, URISyntaxException {
         String videoUrl = "https://www.youtube.com/watch?v=" + videoId;
 
         // Destination directory
@@ -41,8 +40,7 @@ public class Youtube {
 //        System.out.println(stdOut);
 
         try {
-            String subs = Resource.getFromResource("subs/" + videoId + ".ru.vtt");
-            return SubsParser.parseSubs(subs);
+            return SubsParser.parseSubs(path);
         } catch (Exception e) {
             System.out.println(e.toString());
         }
@@ -50,33 +48,33 @@ public class Youtube {
         return new WordEntry[]{};
     }
 
-    public static String[] getSubtitles(String videoId) {
-        String[] resultWords = new String[]{};
-        String json = "";
-        String host = "https://savesubs.com";
-
-        try {
-            json = Resource.getFromResource("youtube-response.html");
-
-//            json = getSubsLinkFromSite(videoId);
+//    public static String[] getSubtitles(String videoId) {
+//        String[] resultWords = new String[]{};
+//        String json = "";
+//        String host = "https://savesubs.com";
 //
-//            JSONObject obj = new JSONObject(json);
-//            JSONArray arr = obj.getJSONArray("formats");
-//            String saveUrl = arr.getJSONObject(0).getString("url");
-//            String title = obj.getString("title");
+//        try {
+//            json = Resource.getFromResource("youtube-response.html");
 //
-//            String url = host + saveUrl + "?fileName=" + title + " - {lang_name}&stripAngle=false&stripParentheses=false&stripCurly=false&stripSquare=false&stripMusicCues=false&ext=txt";
-//            List<String> subs = getSubsFileFromSite(url);
-
-            String file = Resource.getFromResource("subs.txt");
-            resultWords = file.split("[\\r\\n]+");
-
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
-
-        return resultWords;
-    }
+////            json = getSubsLinkFromSite(videoId);
+////
+////            JSONObject obj = new JSONObject(json);
+////            JSONArray arr = obj.getJSONArray("formats");
+////            String saveUrl = arr.getJSONObject(0).getString("url");
+////            String title = obj.getString("title");
+////
+////            String url = host + saveUrl + "?fileName=" + title + " - {lang_name}&stripAngle=false&stripParentheses=false&stripCurly=false&stripSquare=false&stripMusicCues=false&ext=txt";
+////            List<String> subs = getSubsFileFromSite(url);
+//
+//            String file = Resource.getFromResource("subs.txt");
+//            resultWords = file.split("[\\r\\n]+");
+//
+//        } catch (Exception e) {
+//            System.out.println(e.getMessage());
+//        }
+//
+//        return resultWords;
+//    }
 
     public static String getSubsLinkFromSite(String videoId) throws IOException {
         String html = "";

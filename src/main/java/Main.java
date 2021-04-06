@@ -1,11 +1,19 @@
+import model.WordEntry;
+import rhymes.Rhymes;
+import youtube.Youtube;
+
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-public class Ryfma {
+public class Main {
     static final int quality = 0;
 
     public static void main(String[] args) {
-        String video = /*"voL5_TYPgCU";*/ "P9LG1kTH3nE";
+        String videoId = /*"voL5_TYPgCU";*/ "P9LG1kTH3nE";
 
         Map<String, List<WordEntry>> wordsPos = new HashMap();
 
@@ -31,7 +39,10 @@ public class Ryfma {
 //            }
 //            Map<String, String> rhymes = getRhymesFromFile("rhymes.txt");
 
-            WordEntry[] words = Youtube.getSubtitlesFromLib(video);
+            WordEntry[] words = Youtube.getSubtitlesFromLib(
+                    videoId,
+                    Resource.getFromResource("subs/" + videoId + ".ru.vtt")
+            );
 
             for (WordEntry wordEntry : words) {
                 String word = wordEntry.getWord();
@@ -121,5 +132,21 @@ public class Ryfma {
         }
 
         return rhymes;
+    }
+
+    public static String getFromResource(String fileName) throws IOException {
+        ClassLoader classLoader = Main.class.getClassLoader();
+        InputStream fileIn = classLoader.getResourceAsStream(fileName);
+
+        try (InputStreamReader streamReader = new InputStreamReader(fileIn, StandardCharsets.UTF_8);
+             BufferedReader reader = new BufferedReader(streamReader)) {
+            StringBuffer response = new StringBuffer();
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                response.append(line + "\n");
+            }
+            return response.toString();
+        }
     }
 }

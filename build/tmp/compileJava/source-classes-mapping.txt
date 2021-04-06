@@ -1,22 +1,28 @@
-ApiExample.java
- ApiExample
-ozon/Solver.java
- ozon.Solver
-ozon/UsersDataStorage.java
- ozon.UsersDataStorage
-Rhymes.java
- Rhymes
-Resource.java
- Resource
+youtube/Youtube.java
+ youtube.Youtube
 ozon/BitTrie.java
  ozon.BitTrie
  ozon.Node
-Ryfma.java
- Ryfma
-Youtube.java
- Youtube
-SubsParser.java
- Stats
- SubsParser
-WordEntry.java
- WordEntry
+Resource.java
+ Resource
+rhymes/Rhymes.java
+ rhymes.Rhymes
+model/SpeechPart.java
+ model.SpeechPart
+Main.java
+ Main
+ozon/UsersDataStorage.java
+ ozon.UsersDataStorage
+youtube/SubsParser.java
+ youtube.Stats
+ youtube.SubsParser
+youtube/ApiExample.java
+ youtube.ApiExample
+model/Word.java
+ model.Word
+ozon/Solver.java
+ ozon.Solver
+model/WordEntry.java
+ model.WordEntry
+server/JsonServer.java
+ server.JsonServer
