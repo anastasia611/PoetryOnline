@@ -15,6 +15,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 
 
 public class Rhymes {
@@ -43,11 +44,16 @@ public class Rhymes {
                 }
                 if (child.tag().getName().equals("u")) {
                     String letter = child.text();
-                    child.replaceWith(new TextNode(letter));
+                    child.replaceWith(new TextNode(letter.toUpperCase()));
+                }
+                if (child.classNames().contains("pref") || child.classNames().contains("suff")) {
+                    String opts = child.text();
+                    opts = opts.replace(',', ' ');
+                    child.text(opts);
                 }
             }
 
-            StringBuilder txt = new StringBuilder(result.text().replaceAll(",", ""));
+            StringBuilder txt = new StringBuilder(result.text()/*.replaceAll(",", "")*/);
 
             int begInd = 0;
             int endInd;
@@ -59,10 +65,10 @@ public class Rhymes {
                     begInd = j;
                 } else if (ch == ')' || ch == ']') {
                     String optsStr = txt.substring(begInd + 1, j);
-                    String[] opts = optsStr.split(" ");
+                    String[] opts = optsStr.split("[,\\[]");
 
                     endInd = j;
-                    while (j < txt.length() && txt.charAt(j) != ' ') j++;
+                    while (j < txt.length() && txt.charAt(j) != ',' && txt.charAt(j) != '[') j++;
 
                     String varWord = txt.substring(endInd + 1, j);
                     StringBuilder replStr = new StringBuilder();

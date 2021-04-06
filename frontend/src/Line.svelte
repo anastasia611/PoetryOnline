@@ -12,7 +12,9 @@
 
     const title = 'Удалить строку';
     const REMOVE_DELAY = 150;
+    const URL = "http://localhost:8082/getRhymes"
 
+    $: rhymes = [];
     let invisible = true;
 
     const dispatch = createEventDispatcher();
@@ -30,7 +32,6 @@
         const word = e.detail.word;
 
         if (newWord) {
-            console.log('k', newWord)
             let editable = !isPunctuationMark(newWord);
             wordsData = push(wordsData, i + 1, { word: newWord === ' ' ? '' : newWord, editable });
         }
@@ -49,8 +50,15 @@
         }, REMOVE_DELAY);
     };
 
-    const onGetRhymes = () => {
+    const onGetRhymes = async (e, i) => {
+        const word = wordsData[i].word;
+        let response = await fetch(`${URL}?word=${word}`);
 
+        if (response.ok) {
+            rhymes = await response.json();
+        } else {
+            console.log("Ошибка HTTP: " + response.status);
+        }
     };
 </script>
 
@@ -62,13 +70,21 @@
         {#each wordsData as word, i}
             <Word word={word.word} editable={word.editable}
                   on:removeWord={() => removeWord(i)}
-                  on:addWord={e => onAddWord(e, i)}/>
+                  on:addWord={e => onAddWord(e, i)}
+                  on:editFinished={e => onGetRhymes(e, i)}/>
         {/each}
     </div>
 
     <div class="right-menu" class:invisible>
         <RemoveButton size="10" {title} on:click={onRemove}/>
         <AddButton on:click={onAddLine}/>
+        {#if rhymes.length}
+            <select name="rhymes">
+                {#each rhymes as rhyme}
+                    <option value={rhyme}>{rhyme}</option>
+                {/each}
+            </select>
+        {/if}
         <button on:click={onGetRhymes}>Get rhyme</button>
     </div>
 </div>

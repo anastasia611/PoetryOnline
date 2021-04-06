@@ -5,14 +5,14 @@ ozon/BitTrie.java
  ozon.Node
 Resource.java
  Resource
-rhymes/Rhymes.java
- rhymes.Rhymes
+ozon/Solver.java
+ ozon.Solver
 model/SpeechPart.java
  model.SpeechPart
-Main.java
- Main
 ozon/UsersDataStorage.java
  ozon.UsersDataStorage
+model/WordEntry.java
+ model.WordEntry
 youtube/SubsParser.java
  youtube.Stats
  youtube.SubsParser
@@ -20,9 +20,9 @@ youtube/ApiExample.java
  youtube.ApiExample
 model/Word.java
  model.Word
-ozon/Solver.java
- ozon.Solver
-model/WordEntry.java
- model.WordEntry
+Main.java
+ Main
 server/JsonServer.java
  server.JsonServer
+rhymes/Rhymes.java
+ rhymes.Rhymes

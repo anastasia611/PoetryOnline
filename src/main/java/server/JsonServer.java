@@ -11,10 +11,7 @@ import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 public class JsonServer {
@@ -41,12 +38,13 @@ public class JsonServer {
 
         server.createContext("/getRhyme", he -> {
             try {
+                he.getResponseHeaders().add("Access-Control-Allow-Origin", "http://localhost:5000");
                 final Headers headers = he.getResponseHeaders();
                 final String requestMethod = he.getRequestMethod().toUpperCase();
 
                 switch (requestMethod) {
                     case METHOD_GET:
-                        StringBuilder responseBody = new StringBuilder();
+                        String responseBody;
 
                         final Map<String, List<String>> requestParameters = getRequestParameters(he.getRequestURI());
                         List<String> wordParam = requestParameters.get("word");
@@ -54,25 +52,15 @@ public class JsonServer {
                         int quality = 0;
 
                         if (wordParam == null || wordParam.size() == 0) {
-                            responseBody.append("[]");
+                            responseBody = "[]";
                         } else {
-                            responseBody.append("[");
-
                             String word = wordParam.get(0);
                             String[] wordRhymes = Rhymes.getRhymes(word, quality);
-
-                            for (String rhyme : wordRhymes) {
-                                responseBody.append("'");
-                                responseBody.append(rhyme);
-                                responseBody.append("'");
-                                responseBody.append(",");
-                            }
-
-                            responseBody.append("]");
+                            responseBody = "[\"" + String.join("\",\"", wordRhymes) + "\"]";
                         }
 
                         headers.set(HEADER_CONTENT_TYPE, String.format("application/json; charset=%s", CHARSET));
-                        final byte[] rawResponseBody = responseBody.toString().getBytes(CHARSET);
+                        final byte[] rawResponseBody = responseBody.getBytes(CHARSET);
                         he.sendResponseHeaders(STATUS_OK, rawResponseBody.length);
                         he.getResponseBody().write(rawResponseBody);
                         break;

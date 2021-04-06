@@ -40,9 +40,15 @@
         }
     };
 
+    const onFocus = () => {
+        editable = true;
+    };
+
     const onBlur = () => {
         if (!word) {
             dispatch('removeWord');
+        } else {
+            dispatch('editFinished', { word });
         }
 
         editable = false;
@@ -67,7 +73,7 @@
 
     <div class="word" tabindex="-1"
          bind:clientWidth={width}
-         on:focus={() => editable = true}
+         on:focus={onFocus}
          on:mouseover={() => invisible = false}
          on:mouseleave={() => invisible = true}>
 
