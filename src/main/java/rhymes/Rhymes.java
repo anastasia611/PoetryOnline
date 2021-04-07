@@ -1,5 +1,6 @@
 package rhymes;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -15,7 +16,6 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.Locale;
 
 
 public class Rhymes {
@@ -28,8 +28,6 @@ public class Rhymes {
             Document doc = Jsoup.parse(html);
             Element result = doc.select("#results").get(0);
             Elements results = result.children();
-
-            StringBuilder words = new StringBuilder("");
 
             int i = 0;
             while (i < results.size() && !results.get(i).classNames().contains("pos")) {
@@ -46,14 +44,9 @@ public class Rhymes {
                     String letter = child.text();
                     child.replaceWith(new TextNode(letter.toUpperCase()));
                 }
-                if (child.classNames().contains("pref") || child.classNames().contains("suff")) {
-                    String opts = child.text();
-                    opts = opts.replace(',', ' ');
-                    child.text(opts);
-                }
             }
 
-            StringBuilder txt = new StringBuilder(result.text()/*.replaceAll(",", "")*/);
+            StringBuilder txt = new StringBuilder(result.text().replaceAll(",", ""));
 
             int begInd = 0;
             int endInd;
@@ -64,22 +57,45 @@ public class Rhymes {
                 if (ch == '(' || ch == '[') {
                     begInd = j;
                 } else if (ch == ')' || ch == ']') {
+                    boolean necessary = ch == ']';
                     String optsStr = txt.substring(begInd + 1, j);
-                    String[] opts = optsStr.split("[,\\[]");
+                    String[] prefOpts = optsStr.split("[\\s+\\[(]");
+                    if (!necessary) {
+                        prefOpts = ArrayUtils.addAll(prefOpts, "");
+                    }
 
                     endInd = j;
-                    while (j < txt.length() && txt.charAt(j) != ',' && txt.charAt(j) != '[') j++;
+                    while (j < txt.length() && txt.charAt(j) != ' ' && txt.charAt(j) != '[') j++;
 
                     String varWord = txt.substring(endInd + 1, j);
+
+                    String[] suffOpts;
+                    if (j < txt.length() && (txt.charAt(j) == '[' || txt.charAt(j) == '(')) {
+                        necessary = txt.charAt(j) == '[';
+                        endInd = j;
+                        while (j < txt.length() && txt.charAt(j) != ']' && txt.charAt(j) != ')') j++;
+
+                        optsStr = txt.substring(endInd + 1, j);
+                        suffOpts = optsStr.split("[\\s+\\[(]");
+                        if (!necessary) {
+                            suffOpts = ArrayUtils.addAll(suffOpts, "");
+                        }
+                    } else {
+                        suffOpts = new String[]{""};
+                    }
+
                     StringBuilder replStr = new StringBuilder();
-                    for (String opt : opts) {
-                        replStr.append(opt);
-                        replStr.append(varWord);
-                        replStr.append(" ");
+                    for (String prefOpt : prefOpts) {
+                        for (String suffOpt : suffOpts) {
+                            replStr.append(prefOpt);
+                            replStr.append(varWord);
+                            replStr.append(suffOpt);
+                            replStr.append(" ");
+                        }
                     }
 
                     txt.replace(begInd, j, replStr.toString());
-                    j--;
+                    j = replStr.length() + begInd;
                 }
             }
 

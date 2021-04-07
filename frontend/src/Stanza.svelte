@@ -4,8 +4,8 @@
 
     export let lines = [];
 
-    const REMOVE_DELAY = 150;
-    const ADD_DELAY = 150;
+    const REMOVE_DELAY = 100;
+    const ADD_DELAY = 100;
 
     const removeLine = i => {
         setTimeout(() => {
@@ -16,8 +16,7 @@
 
     const addLine = i => {
         setTimeout(() => {
-            console.log(push(lines, i, []))
-            lines = push(lines, i, []);
+            lines = push(lines, i + 1, []);
         }, ADD_DELAY);
     };
 </script>

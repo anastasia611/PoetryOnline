@@ -27,7 +27,19 @@
         dispatch('addLine');
     };
 
-    const onAddWord = (e, i) => {
+    const onEnter = (e, i) => {
+        const word = e.detail.word;
+        if (word) {
+            wordsData[i] = { word: e.detail.word, editable: false };
+        } else {
+            removeWord(i);
+        }
+        if (i === words.length - 1) {
+            onAddLine();
+        }
+    };
+
+    const onPunct = (e, i) => {
         const newWord = e.detail.newWord;
         const word = e.detail.word;
 
@@ -53,7 +65,7 @@
     const onGetRhymes = async (e, i) => {
         const word = wordsData[i].word;
         let response = await fetch(`${URL}?word=${word}`);
-
+console.log(word)
         if (response.ok) {
             rhymes = await response.json();
         } else {
@@ -70,7 +82,8 @@
         {#each wordsData as word, i}
             <Word word={word.word} editable={word.editable}
                   on:removeWord={() => removeWord(i)}
-                  on:addWord={e => onAddWord(e, i)}
+                  on:enter={e => onEnter(e, i)}
+                  on:punct={e => onPunct(e, i)}
                   on:editFinished={e => onGetRhymes(e, i)}/>
         {/each}
     </div>

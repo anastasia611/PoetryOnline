@@ -1,5 +1,5 @@
-const punct = /[!"-:;—?-]/i;
-const letters = /[a-zA-zа-яА-Я]/i;
+const punct = /!|"|-|:|;|—|\?|\.|,/i;
+const letters = /[a-zA-zа-яёА-ЯЁ]/i;
 
 export function isLetter(str) {
     if (!str) return false;
@@ -13,5 +13,5 @@ export function isPunctuationMark(str) {
 
 export function parseWords(str) {
     if (!str) return false;
-    return str.split(/\s+|(,|-|—|\.|;|:|\?|!|\(|\))/).filter(Boolean);
+    return str.split(/\s+|([,\-—.;:?!()])/).filter(Boolean);
 }

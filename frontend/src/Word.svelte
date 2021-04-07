@@ -1,7 +1,7 @@
 <script>
     import RemoveButton from "./RemoveButton.svelte";
-    import {createEventDispatcher} from 'svelte';
-    import {isLetter, isPunctuationMark} from "./common/strings";
+    import { createEventDispatcher } from 'svelte';
+    import { isLetter, isPunctuationMark } from "./common/strings";
 
     export let word = "";
     export let editable = false;
@@ -9,6 +9,7 @@
     const title = 'Удалить слово';
 
     let invisible = !editable;
+    let input;
     $: width = 0;
 
     const dispatch = createEventDispatcher();
@@ -17,26 +18,25 @@
         dispatch('removeWord');
     };
 
+    $: if (input) {
+        input.addEventListener("keypress", e => {
+            onKeyPress(e);
+        });
+    }
+
     const onKeyPress = e => {
+        if (!isLetter(e.key) && !isPunctuationMark(e.key) && e.key !== ' ') {
+            e.preventDefault();
+        }
+
         if (e.key === "Enter") {
-            dispatch('addWord', { word });
+            dispatch('enter', { word: input.value });
             invisible = true;
             editable = false;
         } else if (isPunctuationMark(e.key) || e.key === " ") {
-            dispatch('addWord', { word, newWord: e.key });
+            dispatch('punct', { word: input.value, sign: e.key });
             invisible = true;
             editable = false;
-        } else if (isLetter(e.key)) {
-            const pos = e.target.selectionStart;
-            word = word.substr(0, pos) + e.key + word.substr(pos, word.length);
-        } else if (e.key === 'Backspace' || e.key === 'Delete') {
-            word = word.substr(0, word.length - 1);
-        } else if (e.key === 'ArrowLeft') {
-            const pos = e.target.selectionStart - 1;
-            e.target.setSelectionRange(pos, pos);
-        } else if (e.key === 'ArrowRight') {
-            const pos = e.target.selectionStart + 1;
-            e.target.setSelectionRange(pos, pos);
         }
     };
 
@@ -48,12 +48,13 @@
         if (!word) {
             dispatch('removeWord');
         } else {
-            dispatch('editFinished', { word });
+            dispatch('editFinished', { word: input.value });
         }
 
         editable = false;
         invisible = true;
     };
+
 </script>
 
 {#if editable}
@@ -66,7 +67,7 @@
             autocapitalize="off"
             spellcheck="true"
             placeholder="введите слово.."
-            on:keydown|preventDefault={onKeyPress}
+            bind:this={input}
             on:blur={onBlur}
     />
 {:else}
@@ -98,7 +99,6 @@
         border-radius: 0.125rem;
         background-clip: padding-box;
         user-select: none;
-        /*background-color: #F0CBCB;*/
 
         &:hover, &:focus {
             background-color: #dddddd;

@@ -13,7 +13,7 @@ public class Main {
     static final int quality = 0;
 
     public static void main(String[] args) {
-        String[] wordRhymes = Rhymes.getRhymes("заходят", quality);
+        String[] wordRhymes = Rhymes.getRhymes("скрывайся", quality);
 
         String videoId = /*"voL5_TYPgCU";*/ "P9LG1kTH3nE";
 

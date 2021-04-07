@@ -1,18 +1,11 @@
 youtube/Youtube.java
  youtube.Youtube
-ozon/BitTrie.java
- ozon.BitTrie
- ozon.Node
-Resource.java
- Resource
-ozon/Solver.java
- ozon.Solver
 model/SpeechPart.java
  model.SpeechPart
-ozon/UsersDataStorage.java
- ozon.UsersDataStorage
 model/WordEntry.java
  model.WordEntry
+Resource.java
+ Resource
 youtube/SubsParser.java
  youtube.Stats
  youtube.SubsParser
