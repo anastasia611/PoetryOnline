@@ -1,0 +1,6 @@
+fr/noop/subtitle/util/SubtitleTimeCodeTest.class
+fr/noop/subtitle/util/SubtitleStyleTest.class
+fr/noop/subtitle/srt/SrtParserTest.class
+fr/noop/subtitle/vtt/VttParserTest.class
+fr/noop/subtitle/stl/StlParserTest.class
+fr/noop/subtitle/util/SubtitleRegionTest.class

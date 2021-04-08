@@ -1,0 +1,21 @@
+youtube/Youtube.java
+ youtube.Youtube
+model/SpeechPart.java
+ model.SpeechPart
+model/WordEntry.java
+ model.WordEntry
+Resource.java
+ Resource
+youtube/SubsParser.java
+ youtube.Stats
+ youtube.SubsParser
+youtube/ApiExample.java
+ youtube.ApiExample
+model/Word.java
+ model.Word
+Main.java
+ Main
+server/JsonServer.java
+ server.JsonServer
+rhymes/Rhymes.java
+ rhymes.Rhymes
