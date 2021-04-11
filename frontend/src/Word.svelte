@@ -1,7 +1,8 @@
 <script>
-    import RemoveButton from "./RemoveButton.svelte";
+    import RemoveButton from "./IconButton.svelte";
     import { createEventDispatcher } from 'svelte';
     import { isLetter, isPunctuationMark } from "./common/strings";
+    import tabFocus from "./actions/tabFocus";
 
     export let word = "";
     export let editable = false;
@@ -9,6 +10,7 @@
     const title = 'Удалить слово';
 
     let invisible = !editable;
+    let focused = false;
     let input;
     $: width = 0;
 
@@ -21,6 +23,7 @@
     $: if (input) {
         input.addEventListener("keypress", e => {
             onKeyPress(e);
+            e.target.setSelectionRange(0, 0);
         });
     }
 
@@ -37,6 +40,16 @@
             dispatch('punct', { word: input.value, sign: e.key });
             invisible = true;
             editable = false;
+        }
+    };
+
+    const onKeyDown = (e) => {
+        const pos = e.target.selectionStart + 1;
+        console.log(e.key, pos);
+        if (e.key === 'ArrowLeft' && pos === 1) {
+            dispatch('back');
+        } else if (e.key === 'ArrowRight' && pos === word.length + 1) {
+            dispatch('next');
         }
     };
 
@@ -66,14 +79,18 @@
             autocomplete="on"
             autocapitalize="off"
             spellcheck="true"
-            placeholder="введите слово.."
+            placeholder=""
             bind:this={input}
+            on:keydown={onKeyDown}
             on:blur={onBlur}
     />
 {:else}
 
     <div class="word" tabindex="-1"
          bind:clientWidth={width}
+         class:key-focus-visible={focused}
+         use:tabFocus
+         on:tabfocus={() => {console.log('FOC');focused = true}}
          on:focus={onFocus}
          on:mouseover={() => invisible = false}
          on:mouseleave={() => invisible = true}>
@@ -83,7 +100,7 @@
         </span>
 
         <span class:invisible class="remove">
-            <RemoveButton size="10" {title} on:click={onRemove}/>
+            <RemoveButton icon="cross" size="10" {title} on:click={onRemove}/>
         </span>
     </div>
 {/if}
@@ -103,6 +120,11 @@
         &:hover, &:focus {
             background-color: #dddddd;
             outline: none;
+        }
+
+        &.key-focus-visible {
+            background-color: gray;
+            border: #666666 2px solid;
         }
     }
 
@@ -124,5 +146,10 @@
         &.invisible {
             opacity: 0;
         }
+
+        &:focus-within {
+            opacity: 1;
+        }
     }
+
 </style>

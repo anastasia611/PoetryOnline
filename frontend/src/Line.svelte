@@ -1,14 +1,12 @@
 <script>
-    import {createEventDispatcher} from 'svelte';
+    import { createEventDispatcher } from 'svelte';
     import Word from "./Word.svelte";
-    import RemoveButton from "./RemoveButton.svelte";
-    import AddButton from "./AddButton.svelte";
-    import {push, remove} from "./common/arrays";
-    import {isPunctuationMark} from "./common/strings";
+    import IconButton from "./IconButton.svelte";
+    import { push, remove } from "./common/arrays";
+    import { isPunctuationMark } from "./common/strings";
 
     export let words = [];
-
-    $: wordsData = words.map(w => ({ word: w, editable: false }));
+    export let editableIndex = -1;
 
     const title = 'Удалить строку';
     const REMOVE_DELAY = 150;
@@ -19,7 +17,7 @@
 
     const dispatch = createEventDispatcher();
 
-    const onRemove = () => {
+    const onRemoveLine = () => {
         dispatch('removeLine');
     };
 
@@ -30,9 +28,11 @@
     const onEnter = (e, i) => {
         const word = e.detail.word;
         if (word) {
-            wordsData[i] = { word: e.detail.word, editable: false };
+            editableIndex = i + 1;
+            words[i] = e.detail.word;
         } else {
-            removeWord(i);
+            editableIndex = i - 1;
+            onRemoveWord(i);
         }
         if (i === words.length - 1) {
             onAddLine();
@@ -40,32 +40,53 @@
     };
 
     const onPunct = (e, i) => {
-        const newWord = e.detail.newWord;
+        const newWord = e.detail.sign;
         const word = e.detail.word;
 
         if (newWord) {
-            let editable = !isPunctuationMark(newWord);
-            wordsData = push(wordsData, i + 1, { word: newWord === ' ' ? '' : newWord, editable });
+            words = push(words, i + 1, newWord);
+            if (!isPunctuationMark(newWord)) {
+                editableIndex = i + 1;
+            }
         }
 
         if (word) {
-            wordsData[i] = { word: e.detail.word, editable: false };
+            words[i] = e.detail.word;
         } else {
-            removeWord(i);
+            onRemoveWord(i);
         }
     };
 
-    const removeWord = i => {
+    const onRemoveWord = i => {
         setTimeout(() => {
-            remove(wordsData, i);
-            wordsData = wordsData;
+            console.log(i, words)
+            remove(words, i);
+            console.log(i, words)
+            words = words;
         }, REMOVE_DELAY);
     };
 
+    const onBack = (e, i) => {
+        console.log('back', i)
+        if (i > 0) {
+            editableIndex = i - 1;
+        } else {
+            dispatch('back');
+        }
+    };
+
+    const onNext = async (e, i) => {
+        if (i < words.length - 1) {
+            editableIndex = i + 1;
+        } else {
+            dispatch('next');
+        }
+    };
+
     const onGetRhymes = async (e, i) => {
-        const word = wordsData[i].word;
+        const word = words[i];
         let response = await fetch(`${URL}?word=${word}`);
-console.log(word)
+        console.log(word)
         if (response.ok) {
             rhymes = await response.json();
         } else {
@@ -79,18 +100,21 @@ console.log(word)
      on:mouseleave={() => invisible = true}>
 
     <div>
-        {#each wordsData as word, i}
-            <Word word={word.word} editable={word.editable}
-                  on:removeWord={() => removeWord(i)}
+        {#each words as word, i}
+            <Word word={word}
+                  editable={editableIndex === i}
+                  on:removeWord={() => onRemoveWord(i)}
                   on:enter={e => onEnter(e, i)}
                   on:punct={e => onPunct(e, i)}
+                  on:back={e => onBack(e, i)}
+                  on:next={e => onNext(e, i)}
                   on:editFinished={e => onGetRhymes(e, i)}/>
         {/each}
     </div>
 
     <div class="right-menu" class:invisible>
-        <RemoveButton size="10" {title} on:click={onRemove}/>
-        <AddButton on:click={onAddLine}/>
+        <IconButton icon="cross" size="10" {title} on:click={onRemoveLine}/>
+        <IconButton icon="plus" size="10" {title} on:click={onAddLine}/>
         {#if rhymes.length}
             <select name="rhymes">
                 {#each rhymes as rhyme}
@@ -123,6 +147,10 @@ console.log(word)
 
         &.invisible {
             opacity: 0;
+        }
+
+        &:focus-within {
+            opacity: 1;
         }
     }
 </style>

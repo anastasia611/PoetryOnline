@@ -26,12 +26,9 @@
         color: #500808;
         opacity: 0.2;
 
-        &:hover {
+        &:hover, &:focus {
             background: none;
             opacity: 0.75;
-        }
-        &:focus {
-            background: none;
         }
     }
 </style>

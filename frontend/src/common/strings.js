@@ -15,3 +15,7 @@ export function parseWords(str) {
     if (!str) return false;
     return str.split(/\s+|([,\-—.;:?!()])/).filter(Boolean);
 }
+
+export function capitalize(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}
