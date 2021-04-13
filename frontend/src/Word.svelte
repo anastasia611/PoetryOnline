@@ -40,13 +40,13 @@
             dispatch('space', { word });
         }
 
-        word = (wordElement.textContent || '').trim();
+        word = getWordContent();
         console.log(e.key, word)
     };
 
     const onKeyDown = (e) => {
         const pos = getCaretCharacterOffsetWithin(e.target);
-        word = (wordElement.textContent || '').trim();
+        word = getWordContent();
         console.log(e.key, word, word.length, pos)
 
         if (e.key === 'ArrowLeft' && pos === 0) {
@@ -62,6 +62,11 @@
                 dispatch('back');
             }
         }
+    };
+
+    const getWordContent = () => {
+        // return (wordElement.textContent || '').trim();
+        return wordElement.value;
     };
 
     const onFocus = () => {
@@ -85,11 +90,32 @@
             console.log('focus', wordElement, word)
             wordElement.focus();
         }
+        //let input = document.querySelectorAll('input.word-text'),
+        let input = [wordElement],
+            buffer = [];
+        for (let i = 0; input.length > i; i++) {
+            console.log(input[i].value);
+            buffer[i] = document.createElement('div');
+            buffer[i].style.visibility = "hidden";
+            buffer[i].style.position = "absolute";
+            //вставляем скрытый div.buffer
+            input[i].parentNode.insertBefore(buffer[i], input[i].nextSibling);
+
+            buffer[i].innerHTML = word;
+            input[i].style.width = buffer[i].clientWidth + 16 + 'px';
+
+            input[i].oninput = function() {
+                this.nextElementSibling.innerHTML = this.value;
+                console.log(this.value, this.nextElementSibling.clientWidth)
+                this.style.width = this.nextElementSibling.clientWidth + 16 + 'px';
+            };
+        }
     });
 
     $: if (wordElement) {
         console.log('create', wordElement, word)
-        // wordElement.innerHTML = word;
+        wordElement.style.width = wordElement.nextSibling.clientWidth + 16 + 'px';
+// wordElement.innerHTML = word;
     }
 
     $: {
@@ -106,16 +132,18 @@
      on:click={onFocus}
      on:focus={onFocus}
      on:keydown={onKeyDown}
-     on:blur={onBlur} >
+     on:blur={onBlur}>
 
-     <span
-             contenteditable={editable}
-             title={word}
-             on:click={onFocus}
-             bind:this={wordElement}
-             class="word-text"
+    <input
+            contenteditable
+            title={word}
+            on:click={onFocus}
+            value={word}
+            style="min-width:16px"
+            bind:this={wordElement}
+            class="word-text"
 
-     >{word}</span>
+    />
 
 
     <span class="remove">
@@ -164,6 +192,14 @@
         &:focus {
             outline: none;
         }
+    }
+
+    .buffer {
+        position: absolute;
+        top: -1000px;
+        left: -1000px;
+        visibility: hidden;
+        white-space: nowrap;
     }
 
 </style>
