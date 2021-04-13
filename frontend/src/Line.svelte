@@ -3,7 +3,6 @@
     import Word from "./Word.svelte";
     import IconButton from "./IconButton.svelte";
     import { push, remove } from "./common/arrays";
-    import { isPunctuationMark } from "./common/strings";
 
     export let words = [];
     export let editableIndex = -1;
@@ -13,7 +12,6 @@
     const URL = "http://localhost:8082/getRhymes"
 
     $: rhymes = [];
-    let invisible = true;
 
     const dispatch = createEventDispatcher();
 
@@ -26,11 +24,13 @@
     };
 
     const onEnter = (e, i) => {
+        console.log('enter')
         const word = e.detail.word;
         if (word) {
             editableIndex = i + 1;
             words[i] = e.detail.word;
         } else {
+            console.log('rm entr', e, i)
             editableIndex = i - 1;
             onRemoveWord(i);
         }
@@ -40,34 +40,39 @@
     };
 
     const onPunct = (e, i) => {
-        const newWord = e.detail.sign;
+        editableIndex = i;
+        words = push(words, ++editableIndex, e.detail.sign);
+        words = push(words, ++editableIndex, '');
+        addWord(e, i);
+    };
+
+    const onSpace = (e, i) => {
+        editableIndex = i;
+        words = push(words, ++editableIndex, '');
+        addWord(e, i);
+    };
+
+    const addWord = (e, i) => {
         const word = e.detail.word;
-
-        if (newWord) {
-            words = push(words, i + 1, newWord);
-            if (!isPunctuationMark(newWord)) {
-                editableIndex = i + 1;
-            }
-        }
-
-        if (word) {
-            words[i] = e.detail.word;
-        } else {
-            onRemoveWord(i);
-        }
+        // if (word) {
+        //     words[i] = word;
+        // } else {
+        //     onRemoveWord(i);
+        // }
+        words[i] = word;
     };
 
     const onRemoveWord = i => {
         setTimeout(() => {
-            console.log(i, words)
+            console.log('rm bef', words)
             remove(words, i);
-            console.log(i, words)
+            console.log('rm aft', words)
             words = words;
         }, REMOVE_DELAY);
     };
 
     const onBack = (e, i) => {
-        console.log('back', i)
+        console.log('bk', e, i)
         if (i > 0) {
             editableIndex = i - 1;
         } else {
@@ -75,8 +80,9 @@
         }
     };
 
-    const onNext = async (e, i) => {
+    const onNext = (e, i) => {
         if (i < words.length - 1) {
+            console.log('nxt',i + 1)
             editableIndex = i + 1;
         } else {
             dispatch('next');
@@ -86,7 +92,6 @@
     const onGetRhymes = async (e, i) => {
         const word = words[i];
         let response = await fetch(`${URL}?word=${word}`);
-        console.log(word)
         if (response.ok) {
             rhymes = await response.json();
         } else {
@@ -95,33 +100,32 @@
     };
 </script>
 
-<div class="line"
-     on:mouseover={() => invisible = false}
-     on:mouseleave={() => invisible = true}>
-
+<div class="line">
     <div>
         {#each words as word, i}
-            <Word word={word}
-                  editable={editableIndex === i}
-                  on:removeWord={() => onRemoveWord(i)}
-                  on:enter={e => onEnter(e, i)}
-                  on:punct={e => onPunct(e, i)}
-                  on:back={e => onBack(e, i)}
-                  on:next={e => onNext(e, i)}
-                  on:editFinished={e => onGetRhymes(e, i)}/>
+            <Word
+                    {word}
+                    editable={editableIndex === i}
+                    on:removeWord={() => onRemoveWord(i)}
+                    on:enter={e => onEnter(e, i)}
+                    on:punct={e => onPunct(e, i)}
+                    on:back={e => onBack(e, i)}
+                    on:next={e => onNext(e, i)}
+                    on:space={e => onSpace(e, i)}
+                    on:editFinished={e => onGetRhymes(e, i)}/>
         {/each}
     </div>
 
-    <div class="right-menu" class:invisible>
+    <div class="right-menu">
         <IconButton icon="cross" size="10" {title} on:click={onRemoveLine}/>
-        <IconButton icon="plus" size="10" {title} on:click={onAddLine}/>
-        {#if rhymes.length}
-            <select name="rhymes">
-                {#each rhymes as rhyme}
-                    <option value={rhyme}>{rhyme}</option>
-                {/each}
-            </select>
-        {/if}
+        <IconButton icon="plus" size="11" {title} on:click={onAddLine}/>
+        <!--{#if rhymes.length}-->
+        <!--    <select name="rhymes">-->
+        <!--        {#each rhymes as rhyme}-->
+        <!--            <option value={rhyme}>{rhyme}</option>-->
+        <!--        {/each}-->
+        <!--    </select>-->
+        <!--{/if}-->
         <button on:click={onGetRhymes}>Get rhyme</button>
     </div>
 </div>
@@ -131,26 +135,22 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-
-        &:hover, &:focus {
-            background-color: #EEEE;
-        }
-
         padding: 0.25rem;
-    }
 
-    .right-menu {
-        display: flex;
-        align-items: center;
-        float: right;
-        margin-left: 1rem;
-
-        &.invisible {
+        .right-menu {
+            display: flex;
+            align-items: center;
+            float: right;
+            margin-left: 1rem;
             opacity: 0;
         }
 
-        &:focus-within {
-            opacity: 1;
+        &:hover, &:focus, &:focus-within {
+            background-color: #EEEE;
+
+            .right-menu {
+                opacity: 1;
+            }
         }
     }
 </style>

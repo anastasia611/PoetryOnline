@@ -19,7 +19,7 @@
 
 <button on:click>
     {#if Icon}
-        <svelte:component this={Icon} ref="svg" size="10" {title}/>
+        <svelte:component this={Icon} ref="svg" {size} {title}/>
     {/if}
 </button>
 

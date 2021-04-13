@@ -50,8 +50,7 @@
     }
 
     .container {
-        /*padding: 0 5rem;
-        display: inline-block;*/
+        box-shadow: 0 6px 8px 0 #b7b1ac;
         width: 75%;
         background-color: white;
 

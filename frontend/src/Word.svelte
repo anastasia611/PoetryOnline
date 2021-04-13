@@ -1,55 +1,66 @@
 <script>
     import RemoveButton from "./IconButton.svelte";
-    import { createEventDispatcher } from 'svelte';
+    import { createEventDispatcher, onDestroy, onMount } from 'svelte';
     import { isLetter, isPunctuationMark } from "./common/strings";
     import tabFocus from "./actions/tabFocus";
+    import { getCaretCharacterOffsetWithin } from "./common/dom";
 
     export let word = "";
     export let editable = false;
 
     const title = 'Удалить слово';
 
-    let invisible = !editable;
     let focused = false;
-    let input;
-    $: width = 0;
+    let wordElement;
+    let pos = 0;
 
     const dispatch = createEventDispatcher();
+
+    onDestroy(() => {
+        if (wordElement) {
+            wordElement.removeEventListener('keypress', onKeyPress);
+        }
+    });
 
     const onRemove = () => {
         dispatch('removeWord');
     };
-
-    $: if (input) {
-        input.addEventListener("keypress", e => {
-            onKeyPress(e);
-            e.target.setSelectionRange(0, 0);
-        });
-    }
 
     const onKeyPress = e => {
         if (!isLetter(e.key) && !isPunctuationMark(e.key) && e.key !== ' ') {
             e.preventDefault();
         }
 
-        if (e.key === "Enter") {
-            dispatch('enter', { word: input.value });
-            invisible = true;
-            editable = false;
-        } else if (isPunctuationMark(e.key) || e.key === " ") {
-            dispatch('punct', { word: input.value, sign: e.key });
-            invisible = true;
-            editable = false;
+        if (e.key === 'Enter') {
+            console.log('disp enter', word)
+            dispatch('enter', { word });
+        } else if (isPunctuationMark(e.key)) {
+            dispatch('punct', { word, sign: e.key });
+        } else if (e.key === ' ') {
+            dispatch('space', { word });
         }
+
+        word = (wordElement.textContent || '').trim();
+        console.log(e.key, word)
     };
 
     const onKeyDown = (e) => {
-        const pos = e.target.selectionStart + 1;
-        console.log(e.key, pos);
-        if (e.key === 'ArrowLeft' && pos === 1) {
+        const pos = getCaretCharacterOffsetWithin(e.target);
+        word = (wordElement.textContent || '').trim();
+        console.log(e.key, word, word.length, pos)
+
+        if (e.key === 'ArrowLeft' && pos === 0) {
             dispatch('back');
-        } else if (e.key === 'ArrowRight' && pos === word.length + 1) {
+        } else if (e.key === 'ArrowRight' && pos === word.length) {
             dispatch('next');
+        } else if (e.key === 'Backspace' || e.key === 'Delete') {
+            if (!word.length) {
+                console.log('len 1', word)
+                onRemove();
+            }
+            if (!pos) {
+                dispatch('back');
+            }
         }
     };
 
@@ -59,56 +70,64 @@
 
     const onBlur = () => {
         if (!word) {
-            dispatch('removeWord');
+            console.log('rem bl')
+            onRemove();
         } else {
-            dispatch('editFinished', { word: input.value });
+            dispatch('editFinished', { word });
         }
 
         editable = false;
-        invisible = true;
     };
+
+    onMount(async () => {
+        wordElement.addEventListener('keypress', onKeyPress);
+        if (editable) {
+            console.log('focus', wordElement, word)
+            wordElement.focus();
+        }
+    });
+
+    $: if (wordElement) {
+        console.log('create', wordElement, word)
+        // wordElement.innerHTML = word;
+    }
+
+    $: {
+        console.log(word)
+    }
 
 </script>
 
-{#if editable}
-    <input
-            class="word-editable"
-            value={word}
-            style="width:{width}px;"
-            autofocus
-            autocomplete="on"
-            autocapitalize="off"
-            spellcheck="true"
-            placeholder=""
-            bind:this={input}
-            on:keydown={onKeyDown}
-            on:blur={onBlur}
-    />
-{:else}
 
-    <div class="word" tabindex="-1"
-         bind:clientWidth={width}
-         class:key-focus-visible={focused}
-         use:tabFocus
-         on:tabfocus={() => {console.log('FOC');focused = true}}
-         on:focus={onFocus}
-         on:mouseover={() => invisible = false}
-         on:mouseleave={() => invisible = true}>
+<div class="word" tabindex="-1"
+     class:key-focus-visible={focused}
+     use:tabFocus
+     on:tabfocus={() => {console.log('FOC');focused = true}}
+     on:click={onFocus}
+     on:focus={onFocus}
+     on:keydown={onKeyDown}
+     on:blur={onBlur} >
 
-        <span class="word-text" title={word}>
-            {word}
-        </span>
+     <span
+             contenteditable={editable}
+             title={word}
+             on:click={onFocus}
+             bind:this={wordElement}
+             class="word-text"
 
-        <span class:invisible class="remove">
-            <RemoveButton icon="cross" size="10" {title} on:click={onRemove}/>
-        </span>
-    </div>
-{/if}
+     >{word}</span>
+
+
+    <span class="remove">
+        <RemoveButton icon="cross" size="10" {title} on:click={onRemove}/>
+    </span>
+</div>
 
 <style lang="scss">
     .word {
         display: inline-block;
         width: fit-content;
+        //height: 1.5rem;
         padding: 0.5rem;
         line-height: 1rem;
         color: #222;
@@ -117,9 +136,17 @@
         background-clip: padding-box;
         user-select: none;
 
-        &:hover, &:focus {
+        & .remove {
+            opacity: 0;
+        }
+
+        &:hover, &:focus, &:focus-within {
             background-color: #dddddd;
             outline: none;
+
+            & .remove {
+                opacity: 1;
+            }
         }
 
         &.key-focus-visible {
@@ -130,25 +157,12 @@
 
     .word-text {
         color: #500808;
-    }
-
-    .word-editable {
         border: none;
-        padding: 0 0.5rem;
-        height: 2rem;
+        font-size: 1rem;
+        line-height: 1rem;
 
         &:focus {
             outline: none;
-        }
-    }
-
-    .remove {
-        &.invisible {
-            opacity: 0;
-        }
-
-        &:focus-within {
-            opacity: 1;
         }
     }
 
