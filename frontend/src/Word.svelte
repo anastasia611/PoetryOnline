@@ -16,11 +16,6 @@
 
     const dispatch = createEventDispatcher();
 
-    onDestroy(() => {
-        if (wordElement) {
-            wordElement.removeEventListener('keypress', onKeyPress);
-        }
-    });
 
     const onRemove = () => {
         dispatch('removeWord');
@@ -84,6 +79,12 @@
         editable = false;
     };
 
+    onDestroy(() => {
+        if (wordElement) {
+            wordElement.removeEventListener('keypress', onKeyPress);
+        }
+    });
+
     onMount(async () => {
         wordElement.addEventListener('keypress', onKeyPress);
         if (editable) {
@@ -102,6 +103,7 @@
             input[i].parentNode.insertBefore(buffer[i], input[i].nextSibling);
 
             buffer[i].innerHTML = word;
+            console.log('set', word)
             input[i].style.width = buffer[i].clientWidth + 16 + 'px';
 
             input[i].oninput = function() {
@@ -114,6 +116,7 @@
 
     $: if (wordElement) {
         console.log('create', wordElement, word)
+        wordElement.nextSibling.innerHTML = word;
         wordElement.style.width = wordElement.nextSibling.clientWidth + 16 + 'px';
 // wordElement.innerHTML = word;
     }
