@@ -13,6 +13,8 @@
 
     $: rhymes = [];
 
+    $: editableIndex;
+
     const dispatch = createEventDispatcher();
 
     const onRemoveLine = () => {
@@ -24,8 +26,8 @@
     };
 
     const onEnter = (e, i) => {
-        console.log('enter')
         const word = e.detail.word;
+        console.log('enter', word, i)
         if (word) {
             editableIndex = i + 1;
             words[i] = e.detail.word;
@@ -48,18 +50,18 @@
 
     const onSpace = (e, i) => {
         editableIndex = i;
+        if (!words[editableIndex]) {
+            return;
+        }
+        if (editableIndex < words.length - 1 && !words[editableIndex + 1]) {
+            return;
+        }
         words = push(words, ++editableIndex, '');
         addWord(e, i);
     };
 
     const addWord = (e, i) => {
-        const word = e.detail.word;
-        // if (word) {
-        //     words[i] = word;
-        // } else {
-        //     onRemoveWord(i);
-        // }
-        words[i] = word;
+        words[i] = e.detail.word;
     };
 
     const onRemoveWord = i => {
@@ -68,6 +70,9 @@
             remove(words, i);
             console.log('rm aft', words)
             words = words;
+            if (!words.length) {
+                onRemoveLine();
+            }
         }, REMOVE_DELAY);
     };
 
@@ -81,8 +86,8 @@
     };
 
     const onNext = (e, i) => {
+        console.log('nxt',i + 1)
         if (i < words.length - 1) {
-            console.log('nxt',i + 1)
             editableIndex = i + 1;
         } else {
             dispatch('next');
@@ -135,7 +140,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0.25rem;
+        padding: 0.25rem 0.5rem;
 
         .right-menu {
             display: flex;
@@ -146,7 +151,7 @@
         }
 
         &:hover, &:focus, &:focus-within {
-            background-color: #EEEE;
+            background-color: #E5E5E5;
 
             .right-menu {
                 opacity: 1;

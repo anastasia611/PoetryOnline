@@ -26,3 +26,7 @@ export function getCaretCharacterOffsetWithin(element) {
     }
     return caretOffset;
 }
+
+export function convertPixelsToRem(px) {
+    return px / parseFloat(getComputedStyle(document.documentElement).fontSize);
+}

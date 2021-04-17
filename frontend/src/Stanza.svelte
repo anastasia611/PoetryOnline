@@ -19,9 +19,16 @@
     };
 
     const onAddLine = i => {
+        lineIndex = i;
         setTimeout(() => {
-            lines = push(lines, i + 1, ['']);
-            lineIndex = i + 1;
+            console.log('add', lines[lineIndex], i)
+            if (!lines[lineIndex].length || !lines[lineIndex][0]) {
+                if (i < lines.length - 1) {
+                    // ++lineIndex;
+                }
+                return;
+            }
+            lines = push(lines, ++lineIndex, ['']);
             wordIndex = 0;
         }, ADD_DELAY);
     };
@@ -56,5 +63,10 @@
 <style lang="scss">
     .stanza {
         margin-bottom: 2rem;
+        padding: 0.5rem;
+
+        &:hover {
+            background-color: #F5F5F5;
+        }
     }
 </style>

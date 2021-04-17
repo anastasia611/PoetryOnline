@@ -3,7 +3,7 @@
     import { createEventDispatcher, onDestroy, onMount } from 'svelte';
     import { isLetter, isPunctuationMark } from "./common/strings";
     import tabFocus from "./actions/tabFocus";
-    import { getCaretCharacterOffsetWithin } from "./common/dom";
+    import { convertPixelsToRem } from "./common/dom";
 
     export let word = "";
     export let editable = false;
@@ -12,6 +12,7 @@
 
     let focused = false;
     let wordElement;
+    let hidden;
     let pos = 0;
 
     const dispatch = createEventDispatcher();
@@ -22,9 +23,15 @@
     };
 
     const onKeyPress = e => {
-        if (!isLetter(e.key) && !isPunctuationMark(e.key) && e.key !== ' ') {
+        const pos = e.target.selectionEnd;
+        console.log(e.key, word, pos, word.length)
+
+        if (!isLetter(e.key)) {
             e.preventDefault();
         }
+        // if (e.key === ' ' && pos !== word.length) {
+        //     e.preventDefault();
+        // }
 
         if (e.key === 'Enter') {
             console.log('disp enter', word)
@@ -32,17 +39,21 @@
         } else if (isPunctuationMark(e.key)) {
             dispatch('punct', { word, sign: e.key });
         } else if (e.key === ' ') {
-            dispatch('space', { word });
+            if (pos !== word.length) {
+                e.preventDefault();
+                return;
+            } else {
+                dispatch('space', { word });
+            }
         }
 
         word = getWordContent();
-        console.log(e.key, word)
     };
 
     const onKeyDown = (e) => {
-        const pos = getCaretCharacterOffsetWithin(e.target);
+        const pos = e.target.selectionEnd;
         word = getWordContent();
-        console.log(e.key, word, word.length, pos)
+        console.log(e.key, word, pos)
 
         if (e.key === 'ArrowLeft' && pos === 0) {
             dispatch('back');
@@ -50,7 +61,6 @@
             dispatch('next');
         } else if (e.key === 'Backspace' || e.key === 'Delete') {
             if (!word.length) {
-                console.log('len 1', word)
                 onRemove();
             }
             if (!pos) {
@@ -70,7 +80,6 @@
 
     const onBlur = () => {
         if (!word) {
-            console.log('rem bl')
             onRemove();
         } else {
             dispatch('editFinished', { word });
@@ -85,81 +94,62 @@
         }
     });
 
+    let width = 0;
+
     onMount(async () => {
         wordElement.addEventListener('keypress', onKeyPress);
-        if (editable) {
-            console.log('focus', wordElement, word)
-            wordElement.focus();
-        }
-        //let input = document.querySelectorAll('input.word-text'),
-        let input = [wordElement],
-            buffer = [];
-        for (let i = 0; input.length > i; i++) {
-            console.log(input[i].value);
-            buffer[i] = document.createElement('div');
-            buffer[i].style.visibility = "hidden";
-            buffer[i].style.position = "absolute";
-            //вставляем скрытый div.buffer
-            input[i].parentNode.insertBefore(buffer[i], input[i].nextSibling);
-
-            buffer[i].innerHTML = word;
-            console.log('set', word)
-            input[i].style.width = buffer[i].clientWidth + 16 + 'px';
-
-            input[i].oninput = function() {
-                this.nextElementSibling.innerHTML = this.value;
-                console.log(this.value, this.nextElementSibling.clientWidth)
-                this.style.width = this.nextElementSibling.clientWidth + 16 + 'px';
-            };
-        }
+        hidden.innerHTML = word;
     });
 
-    $: if (wordElement) {
-        console.log('create', wordElement, word)
-        wordElement.nextSibling.innerHTML = word;
-        wordElement.style.width = wordElement.nextSibling.clientWidth + 16 + 'px';
-// wordElement.innerHTML = word;
-    }
+    const onInput = () => {
+        word = wordElement.value;
+        hidden.innerHTML = wordElement.value;
+        width = convertPixelsToRem(hidden.clientWidth) + 0.25 + 'rem';
+    };
 
-    $: {
-        console.log(word)
+    $: if (wordElement) {
+        hidden.innerHTML = word;
+        width = convertPixelsToRem(hidden.clientWidth) + 0.25 + 'rem';
+    }
+    $: if (wordElement && editable) {
+        console.log('foc', word)
+        wordElement.focus();
     }
 
 </script>
 
-
 <div class="word" tabindex="-1"
-     class:key-focus-visible={focused}
-     use:tabFocus
-     on:tabfocus={() => {console.log('FOC');focused = true}}
      on:click={onFocus}
      on:focus={onFocus}
      on:keydown={onKeyDown}
      on:blur={onBlur}>
 
     <input
-            contenteditable
             title={word}
+            class="word-text"
             on:click={onFocus}
             value={word}
-            style="min-width:16px"
+            style="width: {width}"
+            on:input={onInput}
             bind:this={wordElement}
-            class="word-text"
-
+            class:key-focus-visible={focused}
+            use:tabFocus
+            on:tabfocus={() => focused = true}
+            on:blur={() => focused = false}
     />
+    <div class="hidden"
+         bind:this={hidden}>
+    </div>
 
-
-    <span class="remove">
+    <div class="remove">
         <RemoveButton icon="cross" size="10" {title} on:click={onRemove}/>
-    </span>
+    </div>
 </div>
 
 <style lang="scss">
     .word {
         display: inline-block;
-        width: fit-content;
-        //height: 1.5rem;
-        padding: 0.5rem;
+        padding: 0.25rem 0.25rem;
         line-height: 1rem;
         color: #222;
         cursor: default;
@@ -168,21 +158,17 @@
         user-select: none;
 
         & .remove {
+            display: inline-block;
             opacity: 0;
         }
 
         &:hover, &:focus, &:focus-within {
-            background-color: #dddddd;
+            background-color: #D0D0D0;
             outline: none;
 
             & .remove {
                 opacity: 1;
             }
-        }
-
-        &.key-focus-visible {
-            background-color: gray;
-            border: #666666 2px solid;
         }
     }
 
@@ -191,18 +177,24 @@
         border: none;
         font-size: 1rem;
         line-height: 1rem;
+        min-width: 1rem;
+        //width: var(--w);
+        background: none;
+        padding: 0;
 
         &:focus {
             outline: none;
         }
+
+        &.key-focus-visible {
+            //background-color: red;
+            border: #666666 2px dotted;
+        }
     }
 
-    .buffer {
+    .hidden {
         position: absolute;
-        top: -1000px;
-        left: -1000px;
         visibility: hidden;
-        white-space: nowrap;
     }
 
 </style>

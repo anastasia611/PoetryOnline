@@ -1,12 +1,12 @@
 <script>
     export let title = 'Cross icon';
-    export let size = 8;
+    export let size = 1;
     export let ref;
 </script>
 
 <svg {ref} xmlns="http://www.w3.org/2000/svg"
      x="0px" y="0px"
-     width={size} height={size}
+     width="{size}rem" height="{size}rem"
      viewBox="0 0 503.021 503.021"
      style="enable-background:new 0 0 503.021 503.021;"
      xml:space="preserve">

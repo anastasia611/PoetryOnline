@@ -6,7 +6,7 @@
 
 <svg {ref} xmlns="http://www.w3.org/2000/svg"
      x="0px" y="0px"
-     width={size} height={size}
+     width="{size}rem" height="{size}rem"
      viewBox="0 0 401.994 401.994"
      style="enable-background:new 0 0 401.994 401.994;"
      xml:space="preserve">
