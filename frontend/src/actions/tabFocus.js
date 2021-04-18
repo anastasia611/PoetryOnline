@@ -46,7 +46,6 @@ export default function tabFocus(node) {
     function handleKey(event) {
         blurring = false;
         setTimeout(() => {
-            console.log('foc ev',event.key, document.activeElement, node, !blurring)
             if (event.key === 'Tab' && document.activeElement === node && !blurring) {
                 node.dispatchEvent(new CustomEvent('tabfocus'));
             }

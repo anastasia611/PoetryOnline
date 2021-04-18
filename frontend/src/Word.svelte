@@ -9,14 +9,18 @@
     export let editable = false;
 
     const title = 'Удалить слово';
+    const dispatch = createEventDispatcher();
 
-    let focused = false;
+    let tabFocused = false;
     let wordElement;
     let hidden;
     let pos = 0;
 
-    const dispatch = createEventDispatcher();
+    let width = 0;
 
+    $: {
+        console.log(word, editable)
+    }
 
     const onRemove = () => {
         dispatch('removeWord');
@@ -29,12 +33,8 @@
         if (!isLetter(e.key)) {
             e.preventDefault();
         }
-        // if (e.key === ' ' && pos !== word.length) {
-        //     e.preventDefault();
-        // }
 
         if (e.key === 'Enter') {
-            console.log('disp enter', word)
             dispatch('enter', { word });
         } else if (isPunctuationMark(e.key)) {
             dispatch('punct', { word, sign: e.key });
@@ -53,12 +53,16 @@
     const onKeyDown = (e) => {
         const pos = e.target.selectionEnd;
         word = getWordContent();
-        console.log(e.key, word, pos)
+        // console.log(e.key, word, pos)
 
         if (e.key === 'ArrowLeft' && pos === 0) {
             dispatch('back');
         } else if (e.key === 'ArrowRight' && pos === word.length) {
             dispatch('next');
+        }  else if (e.key === 'ArrowUp') {
+            dispatch('up');
+        }   else if (e.key === 'ArrowDown') {
+            dispatch('down');
         } else if (e.key === 'Backspace' || e.key === 'Delete') {
             if (!word.length) {
                 onRemove();
@@ -76,6 +80,7 @@
 
     const onFocus = () => {
         editable = true;
+        dispatch('focus');
     };
 
     const onBlur = () => {
@@ -94,8 +99,6 @@
         }
     });
 
-    let width = 0;
-
     onMount(async () => {
         wordElement.addEventListener('keypress', onKeyPress);
         hidden.innerHTML = word;
@@ -112,13 +115,12 @@
         width = convertPixelsToRem(hidden.clientWidth) + 0.25 + 'rem';
     }
     $: if (wordElement && editable) {
-        console.log('foc', word)
         wordElement.focus();
     }
 
 </script>
 
-<div class="word" tabindex="-1"
+<div class="word"
      on:click={onFocus}
      on:focus={onFocus}
      on:keydown={onKeyDown}
@@ -127,15 +129,15 @@
     <input
             title={word}
             class="word-text"
-            on:click={onFocus}
             value={word}
             style="width: {width}"
             on:input={onInput}
             bind:this={wordElement}
-            class:key-focus-visible={focused}
+            class:key-focus-visible={tabFocused}
             use:tabFocus
-            on:tabfocus={() => focused = true}
-            on:blur={() => focused = false}
+            on:tabfocus={() => tabFocused = true}
+            on:focus={onFocus}
+            on:blur={() => tabFocused = false}
     />
     <div class="hidden"
          bind:this={hidden}>
@@ -178,7 +180,6 @@
         font-size: 1rem;
         line-height: 1rem;
         min-width: 1rem;
-        //width: var(--w);
         background: none;
         padding: 0;
 
@@ -187,7 +188,6 @@
         }
 
         &.key-focus-visible {
-            //background-color: red;
             border: #666666 2px dotted;
         }
     }

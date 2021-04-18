@@ -1,13 +1,10 @@
 <script>
     import { PlusIcon, CrossIcon } from "./icons";
     import tabFocus from "./actions/tabFocus";
-    import { convertPixelsToRem } from "./common/dom";
 
     export let icon = '';
     export let title = '';
     export let size = 8;
-
-    $: sizeRem = convertPixelsToRem(size);
 
     let Icon;
     let focused = false;
@@ -24,13 +21,13 @@
 
 <button
         on:click
-        style="--size: {sizeRem}"
+        style="--size: {size}"
         class:key-focus-visible={focused}
         use:tabFocus
         on:tabfocus={() => focused = true}
         on:blur={() => focused = false}>
     {#if Icon}
-        <svelte:component this={Icon} ref="svg" size={sizeRem} {title}/>
+        <svelte:component this={Icon} ref="svg" {size} {title}/>
     {/if}
 </button>
 

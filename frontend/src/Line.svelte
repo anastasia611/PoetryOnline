@@ -5,15 +5,13 @@
     import { push, remove } from "./common/arrays";
 
     export let words = [];
-    export let editableIndex = -1;
+    export let wordIndex = 0;
 
     const title = 'Удалить строку';
     const REMOVE_DELAY = 150;
     const URL = "http://localhost:8082/getRhymes"
 
     $: rhymes = [];
-
-    $: editableIndex;
 
     const dispatch = createEventDispatcher();
 
@@ -25,50 +23,42 @@
         dispatch('addLine');
     };
 
-    const onEnter = (e, i) => {
+    const onEnter = e => {
         const word = e.detail.word;
-        console.log('enter', word, i)
         if (word) {
-            editableIndex = i + 1;
-            words[i] = e.detail.word;
+            words[wordIndex++] = e.detail.word;
         } else {
-            console.log('rm entr', e, i)
-            editableIndex = i - 1;
-            onRemoveWord(i);
+            onRemoveWord(--wordIndex);
         }
-        if (i === words.length - 1) {
+        if (wordIndex === words.length - 1) {
             onAddLine();
         }
     };
 
-    const onPunct = (e, i) => {
-        editableIndex = i;
-        words = push(words, ++editableIndex, e.detail.sign);
-        words = push(words, ++editableIndex, '');
-        addWord(e, i);
+    const onPunct = e => {
+        words = push(words, ++wordIndex, e.detail.sign);
+        words = push(words, ++wordIndex, '');
+        addWord(e, wordIndex);
     };
 
-    const onSpace = (e, i) => {
-        editableIndex = i;
-        if (!words[editableIndex]) {
+    const onSpace = e => {
+        if (!words[wordIndex]) {
             return;
         }
-        if (editableIndex < words.length - 1 && !words[editableIndex + 1]) {
+        if (wordIndex < words.length - 1 && !words[wordIndex + 1]) {
             return;
         }
-        words = push(words, ++editableIndex, '');
-        addWord(e, i);
+        words = push(words, ++wordIndex, '');
+        addWord(e);
     };
 
-    const addWord = (e, i) => {
-        words[i] = e.detail.word;
+    const addWord = e => {
+        words[wordIndex] = e.detail.word;
     };
 
     const onRemoveWord = i => {
         setTimeout(() => {
-            console.log('rm bef', words)
             remove(words, i);
-            console.log('rm aft', words)
             words = words;
             if (!words.length) {
                 onRemoveLine();
@@ -76,26 +66,38 @@
         }, REMOVE_DELAY);
     };
 
-    const onBack = (e, i) => {
-        console.log('bk', e, i)
-        if (i > 0) {
-            editableIndex = i - 1;
+    const onBack = () => {
+        if (wordIndex > 0) {
+            --wordIndex;
         } else {
             dispatch('back');
         }
     };
 
-    const onNext = (e, i) => {
-        console.log('nxt',i + 1)
-        if (i < words.length - 1) {
-            editableIndex = i + 1;
+    const onNext = () => {
+        if (wordIndex < words.length - 1) {
+            ++wordIndex;
         } else {
             dispatch('next');
         }
     };
 
-    const onGetRhymes = async (e, i) => {
-        const word = words[i];
+    const onUp = () => {
+        dispatch('back');
+    };
+
+    const onDown = () => {
+        dispatch('next');
+    };
+
+    const onFocus = i => {
+        console.log('word', i);
+        wordIndex = i;
+        dispatch('focus');
+    };
+
+    const onGetRhymes = async () => {
+        const word = words[wordIndex];
         let response = await fetch(`${URL}?word=${word}`);
         if (response.ok) {
             rhymes = await response.json();
@@ -110,13 +112,16 @@
         {#each words as word, i}
             <Word
                     {word}
-                    editable={editableIndex === i}
+                    editable={i === wordIndex}
+                    on:focus={() => onFocus(i)}
                     on:removeWord={() => onRemoveWord(i)}
-                    on:enter={e => onEnter(e, i)}
-                    on:punct={e => onPunct(e, i)}
-                    on:back={e => onBack(e, i)}
-                    on:next={e => onNext(e, i)}
-                    on:space={e => onSpace(e, i)}
+                    on:enter={onEnter}
+                    on:punct={onPunct}
+                    on:back={onBack}
+                    on:next={onNext}
+                    on:up={onUp}
+                    on:down={onDown}
+                    on:space={onSpace}
                     on:editFinished={e => onGetRhymes(e, i)}/>
         {/each}
     </div>

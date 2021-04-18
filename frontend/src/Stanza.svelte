@@ -1,19 +1,20 @@
 <script>
+    import { createEventDispatcher } from 'svelte';
     import Line from "./Line.svelte";
     import { push, remove } from "./common/arrays";
 
     export let lines = [];
-    export let lineIndex = -1;
-    export let wordIndex = -1;
+    export let lineIndex = 0;
+    export let wordIndex = 0;
 
     const REMOVE_DELAY = 50;
     const ADD_DELAY = 50;
 
+    const dispatch = createEventDispatcher();
+
     const onRemoveLine = i => {
         setTimeout(() => {
-            console.log(i, lines)
             remove(lines, i);
-            console.log(i, lines)
             lines = lines;
         }, REMOVE_DELAY);
     };
@@ -21,42 +22,47 @@
     const onAddLine = i => {
         lineIndex = i;
         setTimeout(() => {
-            console.log('add', lines[lineIndex], i)
             if (!lines[lineIndex].length || !lines[lineIndex][0]) {
-                if (i < lines.length - 1) {
-                    // ++lineIndex;
-                }
                 return;
             }
-            lines = push(lines, ++lineIndex, ['']);
+            lines = push(lines, ++lineIndex, [ '' ]);
             wordIndex = 0;
         }, ADD_DELAY);
     };
 
-    const onBack = (e, i) => {
-        console.log('bk', e, i)
-        if (i > 0) {
-            lineIndex = i - 1;
-            wordIndex = lines[i - 1].length - 1;
+    const onBack = () => {
+        if (lineIndex > 0) {
+            wordIndex = lines[--lineIndex].length - 1;
+        } else {
+            dispatch('back');
         }
     };
 
-    const onNext = async (e, i) => {
-        if (i < lines.length - 1) {
-            lineIndex = i + 1;
+    const onNext = async () => {
+        if (lineIndex < lines.length - 1) {
+            lineIndex++;
             wordIndex = 0;
+        } else {
+            dispatch('next');
         }
     };
+
+    const onFocus = i => {
+        lineIndex = i;
+        dispatch('focus');
+    };
+
 </script>
 
 <div class="stanza">
     {#each lines as words, i}
         <Line {words}
-              editableIndex={i === lineIndex ? wordIndex : -1}
+              wordIndex={i === lineIndex ? wordIndex : -1}
+              on:focus={() => onFocus(i)}
               on:removeLine={() => onRemoveLine(i)}
               on:addLine={() => onAddLine(i)}
-              on:back={e => onBack(e, i)}
-              on:next={e => onNext(e, i)} />
+              on:back={onBack}
+              on:next={onNext}/>
     {/each}
 </div>
 
