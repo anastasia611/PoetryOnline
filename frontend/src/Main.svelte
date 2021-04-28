@@ -24,11 +24,12 @@
     header {
         position: fixed;
         top: 0;
-        padding: 1rem 1.5rem;
-        height: 2rem;
+        padding: 1rem 1rem;
+        height: 1.5rem;
         width: 100%;
         font-size: 1.5rem;
         background-color: #F4C8BC;
+        z-index: 1;
 
         & ul {
             list-style: none;

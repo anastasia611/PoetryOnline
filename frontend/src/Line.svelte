@@ -5,105 +5,157 @@
     import { push, remove } from "./common/arrays";
 
     export let words = [];
-    export let wordIndex = 0;
+    export let wordIndex = -1;
 
     const title = 'Удалить строку';
-    const REMOVE_DELAY = 150;
     const URL = "http://localhost:8082/getRhymes"
 
     $: rhymes = [];
 
     const dispatch = createEventDispatcher();
 
+    let destroyed = false;
+
+    $: {
+        //console.log('line word ind', words, wordIndex)
+    }
+
+    const updateWord = word => {
+        if (word) {
+            console.log('add word', words, word, wordIndex)
+            words[wordIndex] = word;
+        } else {
+            console.log('add empty word - remove', words, wordIndex)
+            onRemoveWord(wordIndex);
+            if (wordIndex > 0) {
+                --wordIndex;
+            }
+        }
+    };
+
+    const addWord = word => {
+        words = push(words, ++wordIndex, word);
+    };
+
     const onRemoveLine = () => {
-        dispatch('removeLine');
+        console.log('rm line', words)
+        dispatch('remove', { words });
     };
 
     const onAddLine = () => {
-        dispatch('addLine');
+        dispatch('add', { words });
     };
 
     const onEnter = e => {
         const word = e.detail.word;
-        if (word) {
-            words[wordIndex++] = e.detail.word;
+        updateWord(word);
+
+        if (wordIndex < words.length - 1) {
+            console.log('enter word', words, word, wordIndex)
+            ++wordIndex;
         } else {
-            onRemoveWord(--wordIndex);
-        }
-        if (wordIndex === words.length - 1) {
+            console.log('enter word - new line', words, word, wordIndex)
             onAddLine();
         }
     };
 
-    const onPunct = e => {
-        words = push(words, ++wordIndex, e.detail.sign);
-        words = push(words, ++wordIndex, '');
-        addWord(e, wordIndex);
-    };
-
     const onSpace = e => {
+        updateWord(e.detail.word);
+        console.log('space', e.detail.word, wordIndex, words)
         if (!words[wordIndex]) {
             return;
         }
         if (wordIndex < words.length - 1 && !words[wordIndex + 1]) {
             return;
         }
-        words = push(words, ++wordIndex, '');
-        addWord(e);
+        addWord('');
     };
 
-    const addWord = e => {
-        words[wordIndex] = e.detail.word;
+    const onPunct = e => {
+        const word = e.detail.word;
+        updateWord(word);
+        addWord(e.detail.sign);
+        addWord('');
     };
 
     const onRemoveWord = i => {
-        setTimeout(() => {
+        // can be removed via button, may need to update current index with new value
+        wordIndex = i;
+
+        if (!words.length) {
+            console.log('rm line - empty on rem word', words)
+            onRemoveLine();
+        } else if (wordIndex === words.length) {
+            onBackWord();
+        } else {
+            console.log('rm word', words, i, words[i])
             remove(words, i);
+            console.log('word removed', words)
             words = words;
-            if (!words.length) {
-                onRemoveLine();
-            }
-        }, REMOVE_DELAY);
+        }
     };
 
-    const onBack = () => {
+    const onBackWord = () => {
+        console.log('back', wordIndex, wordIndex - 1, words)
         if (wordIndex > 0) {
             --wordIndex;
         } else {
-            dispatch('back');
+            onBackLine();
         }
     };
 
-    const onNext = () => {
+    const onNextWord = () => {
+        console.log('next', wordIndex, wordIndex + 1, words)
         if (wordIndex < words.length - 1) {
             ++wordIndex;
         } else {
-            dispatch('next');
+            onNextLine();
         }
     };
 
-    const onUp = () => {
-        dispatch('back');
-    };
-
-    const onDown = () => {
+    const onNextLine = () => {
         dispatch('next');
     };
 
+    const onBackLine = () => {
+        dispatch('back');
+    };
+
+    const onUp = () => {
+        onBackLine();
+    };
+
+    const onDown = () => {
+        onNextLine();
+    };
+
     const onFocus = i => {
-        console.log('word', i);
+        // console.log('word', i, words[i]);
         wordIndex = i;
-        dispatch('focus');
+        dispatch('focus', { wordIndex });
+    };
+
+    const onBlur = () => {
+        if (destroyed) {
+            return;
+        }
+
+        console.log('blur line', words)
+        if (!words || !words.length) {
+            console.log('rm line - empty on blur', words)
+            onRemoveLine();
+        }
+        dispatch('blur');
     };
 
     const onGetRhymes = async () => {
         const word = words[wordIndex];
-        let response = await fetch(`${URL}?word=${word}`);
+        /*let response = await fetch(`${URL}?word=${word}`);
         if (response.ok) {
             rhymes = await response.json();
         } else {
             console.log("Ошибка HTTP: " + response.status);
-        }
+        }*/
     };
 </script>
 
@@ -114,11 +166,12 @@
                     {word}
                     editable={i === wordIndex}
                     on:focus={() => onFocus(i)}
-                    on:removeWord={() => onRemoveWord(i)}
+                    on:blur={onBlur}
+                    on:remove={() => onRemoveWord(i)}
                     on:enter={onEnter}
                     on:punct={onPunct}
-                    on:back={onBack}
-                    on:next={onNext}
+                    on:back={onBackWord}
+                    on:next={onNextWord}
                     on:up={onUp}
                     on:down={onDown}
                     on:space={onSpace}
@@ -141,26 +194,26 @@
 </div>
 
 <style lang="scss">
-    .line {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0.25rem 0.5rem;
+  .line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.25rem 0.5rem;
 
-        .right-menu {
-            display: flex;
-            align-items: center;
-            float: right;
-            margin-left: 1rem;
-            opacity: 0;
-        }
-
-        &:hover, &:focus, &:focus-within {
-            background-color: #E5E5E5;
-
-            .right-menu {
-                opacity: 1;
-            }
-        }
+    .right-menu {
+      display: flex;
+      align-items: center;
+      float: right;
+      margin-left: 1rem;
+      opacity: 0;
     }
+
+    &:hover, &:focus, &:focus-within {
+      background-color: #E5E5E5;
+
+      .right-menu {
+        opacity: 1;
+      }
+    }
+  }
 </style>

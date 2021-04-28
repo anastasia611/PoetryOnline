@@ -63,7 +63,7 @@
         }
 
         &.key-focus-visible {
-            border: #666666 2px dotted;
+            border: #666666 0.125rem dotted;
         }
     }
 </style>

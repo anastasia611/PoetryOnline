@@ -16,19 +16,22 @@
     let hidden;
     let pos = 0;
 
+    let orig = word;
+    let destroyed = false;
     let width = 0;
 
     $: {
-        console.log(word, editable)
+        //console.log(word, editable)
     }
 
     const onRemove = () => {
-        dispatch('removeWord');
+        console.log('rm word', word)
+        dispatch('remove');
     };
 
     const onKeyPress = e => {
         const pos = e.target.selectionEnd;
-        console.log(e.key, word, pos, word.length)
+        word = getWordContent();
 
         if (!isLetter(e.key)) {
             e.preventDefault();
@@ -43,6 +46,7 @@
                 e.preventDefault();
                 return;
             } else {
+                console.log('dispatch space', word)
                 dispatch('space', { word });
             }
         }
@@ -53,7 +57,6 @@
     const onKeyDown = (e) => {
         const pos = e.target.selectionEnd;
         word = getWordContent();
-        // console.log(e.key, word, pos)
 
         if (e.key === 'ArrowLeft' && pos === 0) {
             dispatch('back');
@@ -65,10 +68,10 @@
             dispatch('down');
         } else if (e.key === 'Backspace' || e.key === 'Delete') {
             if (!word.length) {
+                // to prevent deletion of symbol in next word
+                console.log('rm word on press')
+                e.preventDefault();
                 onRemove();
-            }
-            if (!pos) {
-                dispatch('back');
             }
         }
     };
@@ -79,28 +82,37 @@
     };
 
     const onFocus = () => {
-        editable = true;
         dispatch('focus');
     };
 
     const onBlur = () => {
+        if (destroyed) {
+            return;
+        }
         if (!word) {
+            // console.log('rm in word', orig, dstr)
             onRemove();
         } else {
             dispatch('editFinished', { word });
         }
 
-        editable = false;
+        tabFocused = false;
+
+        dispatch('blur');
     };
 
     onDestroy(() => {
+        destroyed = true;
         if (wordElement) {
             wordElement.removeEventListener('keypress', onKeyPress);
+            wordElement.removeEventListener('keydown', onKeyDown);
         }
     });
 
     onMount(async () => {
+        // console.log('mount', word)
         wordElement.addEventListener('keypress', onKeyPress);
+        wordElement.addEventListener('keydown', onKeyDown);
         hidden.innerHTML = word;
     });
 
@@ -121,10 +133,7 @@
 </script>
 
 <div class="word"
-     on:click={onFocus}
-     on:focus={onFocus}
-     on:keydown={onKeyDown}
-     on:blur={onBlur}>
+     on:click={onFocus}>
 
     <input
             title={word}
@@ -137,7 +146,7 @@
             use:tabFocus
             on:tabfocus={() => tabFocused = true}
             on:focus={onFocus}
-            on:blur={() => tabFocused = false}
+            on:blur={onBlur}
     />
     <div class="hidden"
          bind:this={hidden}>
@@ -188,7 +197,7 @@
         }
 
         &.key-focus-visible {
-            border: #666666 2px dotted;
+            border: #666666 0.125rem dotted;
         }
     }
 
