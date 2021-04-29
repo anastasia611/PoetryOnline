@@ -165,17 +165,17 @@
             <Word
                     {word}
                     editable={i === wordIndex}
-                    on:focus={() => onFocus(i)}
-                    on:blur={onBlur}
-                    on:remove={() => onRemoveWord(i)}
-                    on:enter={onEnter}
-                    on:punct={onPunct}
-                    on:back={onBackWord}
-                    on:next={onNextWord}
-                    on:up={onUp}
-                    on:down={onDown}
-                    on:space={onSpace}
-                    on:editFinished={e => onGetRhymes(e, i)}/>
+                    on:focus
+                    on:blur
+                    on:remove
+                    on:enter
+                    on:punct
+                    on:back
+                    on:next
+                    on:up
+                    on:down
+                    on:space
+                    on:editFinished/>
         {/each}
     </div>
 
@@ -194,26 +194,26 @@
 </div>
 
 <style lang="scss">
-  .line {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.25rem 0.5rem;
+    .line {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.25rem 0.5rem;
 
-    .right-menu {
-      display: flex;
-      align-items: center;
-      float: right;
-      margin-left: 1rem;
-      opacity: 0;
+        .right-menu {
+            display: flex;
+            align-items: center;
+            float: right;
+            margin-left: 1rem;
+            opacity: 0;
+        }
+
+        &:hover, &:focus, &:focus-within {
+            background-color: #E5E5E5;
+
+            .right-menu {
+                opacity: 1;
+            }
+        }
     }
-
-    &:hover, &:focus, &:focus-within {
-      background-color: #E5E5E5;
-
-      .right-menu {
-        opacity: 1;
-      }
-    }
-  }
 </style>

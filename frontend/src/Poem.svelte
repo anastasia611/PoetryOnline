@@ -1,78 +1,349 @@
 <script>
     import { createEventDispatcher } from 'svelte';
-    import Stanza from "./Stanza.svelte";
+    import IconButton from "./IconButton.svelte";
+    import Word from "./Word.svelte";
     import { push, remove } from "./common/arrays";
 
     export let stanzas = [];
-    export let stanzaIndex = -1;
-    export let lineIndex = -1;
-    export let wordIndex = -1;
+
+    export let stanzaIndex;
+    export let lineIndex;
+    export let wordIndex;
 
     const dispatch = createEventDispatcher();
 
-    const onRemoveStanza = i => {
-        stanzaIndex = i;
-        console.log('rm stanza', stanzas, i)
-        remove(stanzas, i);
-        stanzas = stanzas;
+    const title = 'Стихотворение';
+    const removeLineTitle = 'Удалить строку';
+
+
+    const onFocus = (s, l, w) => {
+        setIndexes(s, l, w);
+        console.log('foc')
     };
 
-    const onAddStanza = (e, i) => {
-        stanzaIndex = i;
-        stanzas[stanzaIndex] = e.detail.lines;
-        console.log('add st', i, stanzas[i])
-        if (stanzas[stanzaIndex] && stanzas[stanzaIndex].length && stanzas[stanzaIndex][0]) {
-            stanzas = push(stanzas, ++stanzaIndex, [ [ '' ] ]);
-            lineIndex = 0;
-            wordIndex = 0;
+    const onBlur = () => {
+        resetIndexes();
+    };
+
+    const onRemoveWord = (s, l, w) => {
+        setIndexes(s, l, w);
+        const words = getLine();
+
+        removeWord();
+
+        if (!words.length) {
+            console.log('rm line - empty on rem word', words)
+            onRemoveLine(s, l);
+        } else if (wordIndex === words.length) { //???
+            onBackWord(s, l, w);
         }
     };
 
-    const onNext = () => {
-        if (stanzaIndex < stanzas.length - 1) {
-            stanzaIndex++;
-            lineIndex = 0;
-            wordIndex = 0;
+    const onRemoveLine = (s, l) => {
+        setIndexes(s, l);
+        const lines = getStanza();
+        console.log('rm line', lines, l)
+        removeLine();
+        if (!lines.length) {
+            removeStanza();
+        } else {
+            onBackLine(s, l, wordIndex);
+        }
+    };
+
+    const onEnter = (e, s, l, w) => {
+        setIndexes(s, l, w);
+        const words = getLine();
+        const word = e.detail.word;
+        updateWord(words, word);
+
+        if (w < words.length - 1) {
+            console.log('enter word', words, word, w);
+            setWordIndex(++w);
+        } else {
+            console.log('enter word - new line', words, word, w)
+            onAddLine(s, l);
+        }
+    };
+
+    const onSpace = (e, s, l, w) => {
+        setIndexes(s, l, w);
+        const words = getLine();
+        const word = e.detail.word;
+        updateWord(words, word);
+
+        console.log('space', words, word, wordIndex)
+
+        if (!word) {
+            return;
+        }
+        if (wordIndex < words.length - 1 && !getWord(wordIndex + 1)) {
+            return;
+        }
+        addWord('');
+    };
+
+    const onPunct = (e, s, l, w) => {
+        setIndexes(s, l, w);
+        const words = getLine();
+        const word = e.detail.word;
+        updateWord(words, word);
+        addWord(e.detail.sign);
+        addWord('');
+    };
+
+    const onNextWord = (s, l, w) => {
+        setIndexes(s, l, w);
+        const words = getLine();
+
+        console.log('next word', w, w + 1, words)
+        if (w < words.length - 1) {
+            setWordIndex(++w);
+        } else {
+            onNextLine(s, l, w);
+        }
+    };
+
+    const onNextLine = (s, l, w) => {
+        setIndexes(s, l, w);
+        const lines = getStanza();
+
+        console.log('next line', lines, l)
+        if (l < lines.length - 1) {
+            setLineIndex(++l);
+            setWordIndex(0);
+        } else {
+            onNextStanza(s, l, w);
+        }
+    };
+
+    const onNextStanza = (s, l, w) => {
+        setIndexes(s, l, w);
+        if (s < stanzas.length - 1) {
+            setStanzaIndex(++s);
+            setLineIndex(0);
+            setWordIndex(0);
             console.log('nxt')
         }
     };
 
-    const onBack = e => {
-        // stanzas[stanzaIndex] = e.detail.lines;
-        if (stanzaIndex > 0) {
-            const stanza = stanzas[--stanzaIndex];
-            lineIndex = stanza.length - 1;
-            const line = stanza[lineIndex];
-            wordIndex = line.length - 1;
+    const onBackWord = (s, l, w) => {
+        setIndexes(s, l, w);
+        const words = getLine();
+
+        console.log('back', w, w - 1, words)
+        if (w > 0) {
+            setWordIndex(--w);
+        } else {
+            onBackLine(s, l, w);
+        }
+    };
+
+    const onBackLine = (s, l, w) => {
+        setIndexes(s, l, w);
+        const lines = getStanza();
+
+        console.log('back to line', lines, l)
+        if (l > 0) {
+            setLineIndex(--l);
+            setWordIndex(getLine().length - 1);
+        } else {
+            onBackStanza(s, l, w);
+        }
+    };
+
+    const onBackStanza = (s, l, w) => {
+        setIndexes(s, l, w);
+        if (s > 0) {
+            setStanzaIndex(--s);
+            const stanza = getStanza();
+
+            setLineIndex(stanza.length - 1);
+            const line = getLine();
+
+            setWordIndex(line.length - 1);
             console.log('bc', stanzaIndex, lineIndex, wordIndex)
         }
     };
 
-    const onFocus = (e, i) => {
-        stanzaIndex = i;
-        lineIndex = e.detail.lineIndex;
-        wordIndex = e.detail.wordIndex;
-        dispatch('focus');
+    const onUp = (s, l, w) => {
+        setIndexes(s, l, w);
+        onBackLine(s, l, w);
     };
 
-    const onBlur = () => {
-        dispatch('blur');
+    const onDown = (s, l, w) => {
+        setIndexes(s, l, w);
+        onNextLine(s, l, w);
     };
+
+    const onAddStanza = (lines, s) => {
+        setIndexes(s);
+        setStanza(lines);
+        console.log('add st', s, getStanza());
+
+        if (getStanza() && getStanza().length && getLine(0)) {
+            setStanzaIndex(++s);
+            stanzas = push(stanzas, s, [ [ '' ] ]);
+            setIndexes(s, 0, 0);
+        }
+    };
+
+    const addWord = (word) => {
+        setWordIndex(wordIndex + 1);
+        setLine(push(getLine(), wordIndex, word));
+    };
+
+    const updateWord = (word, w, l, s) => {
+        if (word) {
+            console.log('add word', getLine(), word, w)
+            setWord(word, w, l, s);
+        } else {
+            console.log('add empty word - remove', getLine(), w)
+            removeWord(getLine(), w);
+            if (w > 0) {
+                setWordIndex(--w);
+            }
+        }
+    };
+
+    const onAddLine = (s, l) => {
+        setIndexes(s, l);
+        const lines = getStanza();
+        const line = getLine();
+
+        console.log('add line', line);
+
+        if (!line || !line.length || !getWord(0, l)) {
+            console.log('rm line', line, l)
+            onRemoveLine(s, l);
+            onAddStanza([], s);
+        } else {
+            setLineIndex(++l);
+            setStanza(push(lines, l, [ '' ]));
+            wordIndex = 0;
+        }
+    };
+
+    const onGetRhymes = async (s, l) => {
+        const word = getLastWord(l, s);
+        /*let response = await fetch(`${URL}?word=${word}`);
+        if (response.ok) {
+            rhymes = await response.json();
+        } else {
+            console.log("Ошибка HTTP: " + response.status);
+        }*/
+    };
+
+    const getStanza = (s = stanzaIndex) => {
+        return stanzas[s];
+    };
+
+    const setStanza = (lines, s = stanzaIndex) => {
+        stanzas[s] = lines;
+    };
+
+    const removeStanza = (s = stanzaIndex) => {
+        remove(stanzas, s);
+    };
+
+    const getLine = (l = lineIndex, s = stanzaIndex) => {
+        return getStanza(s)[l];
+    };
+
+    const setLine = (words, l = lineIndex, s = stanzaIndex) => {
+        getStanza(s)[l] = words;
+    };
+
+    const removeLine = (l = lineIndex, s = stanzaIndex) => {
+        console.log('rm ln', s, l, getStanza(s));
+        remove(getStanza(s), l);
+        setStanza((getStanza())); // hack
+    };
+
+    const getWord = (w = wordIndex, l = lineIndex, s = stanzaIndex) => {
+        return getLine(l, s)[w];
+    };
+
+    const getLastWord = (l = lineIndex, s = stanzaIndex) => {
+        const line = getLine(l, s);
+        return line[line.length - 1];
+    };
+
+    const setWord = (word, w = wordIndex, l = lineIndex, s = stanzaIndex) => {
+        getLine(l, s)[w] = word;
+    };
+
+    const removeWord = (w = wordIndex, l = lineIndex, s = stanzaIndex) => {
+        remove(getLine(l, s), w);
+        stanzas = stanzas; //hack
+    };
+
+    const setIndexes = (s, l, w) => {
+        console.log('idx', s, l, w);
+       setWordIndex(w);
+       setLineIndex(l);
+       setStanzaIndex(s);
+    };
+
+    const setWordIndex = w => {
+        if (typeof w !== 'undefined') {
+            wordIndex = w;
+        }
+    };
+
+    const setLineIndex = l => {
+        if (typeof l !== 'undefined') {
+            lineIndex = l;
+        }
+    };
+
+    const setStanzaIndex = s => {
+        if (typeof s !== 'undefined') {
+            stanzaIndex = s;
+        }
+    };
+
+    const resetIndexes = () => {
+        setIndexes(-1, -1, -1);
+    };
+
 </script>
 
 <div class="poem">
-    <h2 contenteditable>Стихотворение</h2>
-    {#each stanzas as lines, i}
-        <Stanza
-                {lines}
-                wordIndex={i === stanzaIndex ? wordIndex : -1}
-                lineIndex={i === stanzaIndex ? lineIndex : -1}
-                on:focus={e => onFocus(e, i)}
-                on:blur={onBlur}
-                on:add={e => onAddStanza(e, i)}
-                on:remove={() => onRemoveStanza(i)}
-                on:back={onBack}
-                on:next={onNext}/>
+    <h2 contenteditable>
+        {title}
+    </h2>
+    {#each stanzas as lines, s}
+        <div class="stanza">
+            {#each lines as words, l}
+                <div class="line">
+                    <div>
+                        {#each words as word, w}
+                            <Word
+                                    {word}
+                                    editable={s === stanzaIndex && l === lineIndex && w === wordIndex}
+                                    on:focus={() => onFocus(s, l, w)}
+                                    on:blur={onBlur}
+                                    on:remove={() => onRemoveWord(s, l, w)}
+                                    on:enter={e => onEnter(e, s, l, w)}
+                                    on:space={e => onSpace(e, s, l, w)}
+                                    on:punct={e => onPunct(e, s, l, w)}
+                                    on:back={() => onBackWord(s, l, w)}
+                                    on:next={() => onNextWord(s, l, w)}
+                                    on:up={() => onUp(s, l, w)}
+                                    on:down={() => onDown(s, l, w)}
+                                    on:editFinished/>
+                        {/each}
+                    </div>
+
+                    <div class="right-menu">
+                        <IconButton icon="cross" size="10" title={removeLineTitle} on:click={() => onRemoveLine(s, l)}/>
+                        <IconButton icon="plus" size="11" title={removeLineTitle} on:click={() => onAddLine(s, l)}/>
+                        <button on:click={() => onGetRhymes(s, l)}>Get rhyme</button>
+                    </div>
+                </div>
+            {/each}
+        </div>
     {/each}
 </div>
 
@@ -84,6 +355,38 @@
         margin-left: auto;
         margin-right: auto;
         padding: 1rem;
+    }
+
+    .stanza {
+        margin-bottom: 2rem;
+        padding: 0.5rem;
+
+        &:hover, &:focus-within {
+            background-color: #F5F5F5;
+        }
+    }
+
+    .line {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.25rem 0.5rem;
+
+        .right-menu {
+            display: flex;
+            align-items: center;
+            float: right;
+            margin-left: 1rem;
+            opacity: 0;
+        }
+
+        &:hover, &:focus, &:focus-within {
+            background-color: #E5E5E5;
+
+            .right-menu {
+                opacity: 1;
+            }
+        }
     }
 
     h2 {

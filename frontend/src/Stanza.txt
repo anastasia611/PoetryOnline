@@ -1,6 +1,6 @@
 <script>
     import { createEventDispatcher } from 'svelte';
-    import Line from "./Line.svelte";
+    import Word from "./Word.svelte";
     import { push, remove } from "./common/arrays";
 
     export let lines = [];
@@ -80,14 +80,39 @@
 
 <div class="stanza">
     {#each lines as words, i}
-        <Line {words}
-              wordIndex={i === lineIndex ? wordIndex : -1}
-              on:focus={e => onFocus(e, i)}
-              on:blur={() => onBlur(i)}
-              on:remove={e => onRemoveLine(e, i)}
-              on:add={e => onAddLine(e, i)}
-              on:back={onBack}
-              on:next={onNext}/>
+        <div class="line">
+            <div>
+                {#each words as word, i}
+                    <Word
+                            {word}
+                            editable={i === wordIndex}
+                            on:focus
+                            on:blur
+                            on:remove
+                            on:enter
+                            on:punct
+                            on:back
+                            on:next
+                            on:up
+                            on:down
+                            on:space
+                            on:editFinished/>
+                {/each}
+            </div>
+
+            <div class="right-menu">
+                <IconButton icon="cross" size="10" {title} on:click={onRemoveLine}/>
+                <IconButton icon="plus" size="11" {title} on:click={onAddLine}/>
+                <!--{#if rhymes.length}-->
+                <!--    <select name="rhymes">-->
+                <!--        {#each rhymes as rhyme}-->
+                <!--            <option value={rhyme}>{rhyme}</option>-->
+                <!--        {/each}-->
+                <!--    </select>-->
+                <!--{/if}-->
+                <button on:click={onGetRhymes}>Get rhyme</button>
+            </div>
+        </div>
     {/each}
 </div>
 
