@@ -29,6 +29,16 @@
         dispatch('remove');
     };
 
+    const onRemoveBefore = () => {
+        console.log('rm word bef', word)
+        dispatch('remove-before');
+    };
+
+    const onRemoveAfter = () => {
+        console.log('rm word aft', word)
+        dispatch('remove-after');
+    };
+
     const onKeyPress = e => {
         const pos = e.target.selectionEnd;
         word = getWordContent();
@@ -72,6 +82,12 @@
                 console.log('rm word on press')
                 e.preventDefault();
                 onRemove();
+            } else if (e.key === 'Backspace' && pos === 0) {
+                e.preventDefault();
+                onRemoveBefore();
+            } else if (e.key === 'Delete' && pos === word.length) {
+                e.preventDefault();
+                onRemoveAfter();
             }
         }
     };
@@ -91,14 +107,14 @@
         }
         if (!word) {
             // console.log('rm in word', orig, dstr)
-            onRemove();
+            // onRemove();
         } else {
             dispatch('editFinished', { word });
         }
 
         tabFocused = false;
-
-        dispatch('blur');
+console.log('blur', word)
+        dispatch('blur', { word: getWordContent() });
     };
 
     onDestroy(() => {
@@ -197,7 +213,7 @@
         }
 
         &.key-focus-visible {
-            border: #666666 0.125rem dotted;
+            outline: #666666 0.2rem solid;  // why border change height??
         }
     }
 
