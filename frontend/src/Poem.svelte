@@ -38,10 +38,13 @@
         // }
     };
 
+    // TODO: merge lines
     const onRemoveBeforeWord = (s, l, w) => {
         setIndexes(s, l, w);
         if (l === 0) {
             mergeStanzas(s);
+        } else {
+            mergeLines(s, l);
         }
     };
 
@@ -84,9 +87,11 @@
         const word = e.detail.word;
         updateWord(word);
 
+        // TODO: divide bef / aft word cases
         if (w < words.length - 1) {
             console.log('enter word', words, word, w);
-            setWordIndex(++w);
+            splitLine(s, l, w);
+            //setWordIndex(++w);
         } else {
             console.log('enter word - new line', words, word, w)
             onAddLine(s, l);
@@ -224,7 +229,8 @@
         }
     };
 
-    const onAddLine = (s, l) => {
+    // change args order
+    const onAddLine = (s = stanzaIndex, l, value = [ '' ]) => {
         setIndexes(s, l);
         const line = getLine();
 
@@ -233,8 +239,8 @@
         if (!line || !line.length || !getWord(0, l)) {
             console.log('rm line', line, l)
             removeLine();
-            if (!getStanza().length) {
-                removeStanza();
+            if (!getStanza(s).length) {
+                removeStanza(s);
                 setStanzaIndex(stanzaIndex + 1);
                 setLineIndex(0);
             } else if (lineIndex === getStanza().length) {
@@ -244,13 +250,13 @@
                 splitStanza(s, l);
             }
         } else {
-            addLine([ '' ]);
+            addLine(value);
             setWordIndex(0);
         }
     };
 
     const splitStanza = (s, l) => {
-        const stanza = getStanza();
+        const stanza = getStanza(s);
         const stanza1 = stanza.slice(0, l);
         const stanza2 = stanza.slice(l);
         onAddStanza(stanza1, s);
@@ -268,6 +274,26 @@
         removeStanza(s - 1);
         removeStanza(s);
         setIndexes(s - 1, stanza1.length, 0);
+    };
+
+    const splitLine = (s, l, w) => {
+        const line = getLine(l, s);
+        const line1 = line.slice(0, w);
+        const line2 = line.slice(w, line.length ? line.length : 1);
+        onAddLine(s, l, line1);
+        onAddLine(s, l + 1, line2);
+        removeLine(l);
+        setIndexes(s, l + 1, 0);
+    };
+
+    const mergeLines = (s, l) => {
+        const line1 = getLine(l - 1, s);
+        const line2 = getLine(l, s);
+        const line = line1.concat(line2);
+        onAddLine(s, l - 1, line);
+        removeLine(l - 1, s);
+        removeLine(l, s);
+        setIndexes(s, l - 1, line1.length);
     };
 
     const onGetRhymes = async (s, l) => {
@@ -312,13 +338,13 @@
     const setLine = (words, l = lineIndex, s = stanzaIndex) => {
         const stanza = getStanza(s);
         if (stanza) {
-            getStanza(s)[l] = words;
+            stanzas[s][l] = words;
         }
     };
 
-    const addLine = (words = [ '' ], l = lineIndex) => {
+    const addLine = (words = [ '' ], l = lineIndex, s = stanzaIndex) => {
         setLineIndex(++l);
-        setStanza(push(getStanza(), l, words));
+        setStanza(push(getStanza(s), l, words));
     };
 
     const removeLine = (l = lineIndex, s = stanzaIndex) => {
@@ -331,7 +357,10 @@
     };
 
     const getWord = (w = wordIndex, l = lineIndex, s = stanzaIndex) => {
-        return getLine(l, s)[w];
+        const line = getLine(l, s);
+        if (line) {
+            return line[w];
+        }
     };
 
     const getLastWord = (l = lineIndex, s = stanzaIndex) => {
@@ -344,7 +373,7 @@
     const setWord = (word, w = wordIndex, l = lineIndex, s = stanzaIndex) => {
         const line = getLine(l, s);
         if (line) {
-            getLine(l, s)[w] = word;
+            line[w] = word;
         }
     };
 
@@ -356,7 +385,7 @@
     const removeWord = (w = wordIndex, l = lineIndex, s = stanzaIndex) => {
         const line = getLine(l, s);
         if (line) {
-            remove(getLine(l, s), w);
+            remove(line, w);
             stanzas = stanzas;
         }
     };
@@ -455,7 +484,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0.25rem 0.5rem;
+        padding: 0.5rem 0.5rem;
 
         .right-menu {
             display: flex;

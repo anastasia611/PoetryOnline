@@ -32,14 +32,7 @@
 </button>
 
 <style lang="scss">
-    :global([ref=svg]) {
-        fill: #500808;
-        opacity: 0.2;
 
-        &:hover, &:focus {
-            opacity: 0.75;
-        }
-    }
 
     button {
         --button-padding: 2px;
@@ -51,19 +44,23 @@
         border: none;
         background: none;
 
-        & svg {
+        :global([ref=svg]) {
             fill: #500808;
             opacity: 0.2;
         }
 
         &:hover, &:focus {
-            & svg {
+            :global([ref=svg]) {
                 opacity: 0.75;
             }
         }
 
         &.key-focus-visible {
-            border: #666666 0.125rem dotted;
+            outline: #888888 0.2rem solid;
+
+            :global([ref=svg]) {
+                opacity: 0.75;
+            }
         }
     }
 </style>

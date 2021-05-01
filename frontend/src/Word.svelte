@@ -1,7 +1,7 @@
 <script>
     import RemoveButton from "./IconButton.svelte";
     import { createEventDispatcher, onDestroy, onMount } from 'svelte';
-    import { isLetter, isPunctuationMark } from "./common/strings";
+    import { isLetter, isPunctuationMark, isWord } from "./common/strings";
     import tabFocus from "./actions/tabFocus";
     import { convertPixelsToRem } from "./common/dom";
 
@@ -42,8 +42,8 @@
     const onKeyPress = e => {
         const pos = e.target.selectionEnd;
         word = getWordContent();
-
-        if (!isLetter(e.key)) {
+//TODO: set slash why?
+        if (!isLetter(e.key) || isPunctuationMark(word)) {
             e.preventDefault();
         }
 
@@ -67,7 +67,7 @@
     const onKeyDown = (e) => {
         const pos = e.target.selectionEnd;
         word = getWordContent();
-
+// TODO: split word on space
         if (e.key === 'ArrowLeft' && pos === 0) {
             dispatch('back');
         } else if (e.key === 'ArrowRight' && pos === word.length) {
@@ -213,7 +213,7 @@ console.log('blur', word)
         }
 
         &.key-focus-visible {
-            outline: #666666 0.2rem solid;  // why border change height??
+            outline: #888888 0.2rem solid;
         }
     }
 
