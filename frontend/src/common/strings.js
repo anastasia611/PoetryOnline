@@ -4,7 +4,9 @@ const letters = /[a-zA-zа-яёА-ЯЁ]+/i;
 
 export function isLetter(str) {
     if (!str) return false;
-    return str.length === 1 && str.match(letter);
+    return str.length === 1 && str
+        .replace('\\', '') // needed to escape backslash
+        .match(letter);
 }
 
 export function isWord(str) {

@@ -5,6 +5,7 @@
     export let icon = '';
     export let title = '';
     export let size = 8;
+    export let padding = 2;
 
     let Icon;
     let focused = false;
@@ -21,7 +22,7 @@
 
 <button
         on:click
-        style="--size: {size}"
+        style="--size: {size}px; --button-padding: {padding}px"
         class:key-focus-visible={focused}
         use:tabFocus
         on:tabfocus={() => focused = true}
@@ -35,12 +36,10 @@
 
 
     button {
-        --button-padding: 2px;
-
-        width: 1rem;
-        height: 1rem;
+        padding: var(--button-padding);
+        width: calc(var(--size) + 2 * var(--button-padding));
+        height: calc(var(--size) + 2 * var(--button-padding));
         line-height: 1rem;
-        padding: calc(1rem - var(--size));
         border: none;
         background: none;
 

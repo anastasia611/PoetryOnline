@@ -7,6 +7,7 @@
 
     export let word = "";
     export let editable = false;
+    export let pos = 0;
 
     const title = 'Удалить слово';
     const dispatch = createEventDispatcher();
@@ -14,14 +15,12 @@
     let tabFocused = false;
     let wordElement;
     let hidden;
-    let pos = 0;
 
     let orig = word;
     let destroyed = false;
     let width = 0;
 
-    $: {
-        //console.log(word, editable)
+    $: if (editable) {
     }
 
     const onRemove = () => {
@@ -31,50 +30,44 @@
 
     const onRemoveBefore = () => {
         console.log('rm word bef', word)
-        dispatch('remove-before');
+        dispatch('remove-before', { word, punct: isPunctuationMark(word) });
     };
 
     const onRemoveAfter = () => {
         console.log('rm word aft', word)
-        dispatch('remove-after');
+        dispatch('remove-after', { word });
     };
 
     const onKeyPress = e => {
-        const pos = e.target.selectionEnd;
+        pos = e.target.selectionEnd;
         word = getWordContent();
-//TODO: set slash why?
+
         if (!isLetter(e.key) || isPunctuationMark(word)) {
             e.preventDefault();
         }
 
         if (e.key === 'Enter') {
-            dispatch('enter', { word });
+            dispatch('enter', { word, pos });
         } else if (isPunctuationMark(e.key)) {
             dispatch('punct', { word, sign: e.key });
         } else if (e.key === ' ') {
-            if (pos !== word.length) {
-                e.preventDefault();
-                return;
-            } else {
-                console.log('dispatch space', word)
-                dispatch('space', { word });
-            }
+            dispatch('space', { word, pos });
         }
 
         word = getWordContent();
     };
 
     const onKeyDown = (e) => {
-        const pos = e.target.selectionEnd;
+        pos = e.target.selectionEnd;
         word = getWordContent();
-// TODO: split word on space
+
         if (e.key === 'ArrowLeft' && pos === 0) {
             dispatch('back');
         } else if (e.key === 'ArrowRight' && pos === word.length) {
             dispatch('next');
-        }  else if (e.key === 'ArrowUp') {
+        } else if (e.key === 'ArrowUp') {
             dispatch('up');
-        }   else if (e.key === 'ArrowDown') {
+        } else if (e.key === 'ArrowDown') {
             dispatch('down');
         } else if (e.key === 'Backspace' || e.key === 'Delete') {
             if (!word.length) {
@@ -113,7 +106,7 @@
         }
 
         tabFocused = false;
-console.log('blur', word)
+        console.log('blur', word)
         dispatch('blur', { word: getWordContent() });
     };
 
@@ -143,6 +136,7 @@ console.log('blur', word)
         width = convertPixelsToRem(hidden.clientWidth) + 0.25 + 'rem';
     }
     $: if (wordElement && editable) {
+        console.log(word, editable)
         wordElement.focus();
     }
 
@@ -150,6 +144,10 @@ console.log('blur', word)
 
 <div class="word"
      on:click={onFocus}>
+
+    <div class="remove">
+        <RemoveButton icon="cross" size="10" {title} on:click={onRemove}/>
+    </div>
 
     <input
             title={word}
@@ -166,10 +164,6 @@ console.log('blur', word)
     />
     <div class="hidden"
          bind:this={hidden}>
-    </div>
-
-    <div class="remove">
-        <RemoveButton icon="cross" size="10" {title} on:click={onRemove}/>
     </div>
 </div>
 

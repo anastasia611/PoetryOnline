@@ -6,15 +6,16 @@
 
     export let stanzas = [];
 
-    export let stanzaIndex;
-    export let lineIndex;
-    export let wordIndex;
+    export let stanzaIndex = -1;
+    export let lineIndex = -1;
+    export let wordIndex = -1;
 
     const dispatch = createEventDispatcher();
 
     const title = 'Стихотворение';
     const removeLineTitle = 'Удалить строку';
 
+    //TODO: set correct word pos
 
     const onFocus = (s, l, w) => {
         setIndexes(s, l, w);
@@ -25,7 +26,7 @@
         // const word = e.detail.word;
         // if (!word) {
         //     console.log('rm in word')
-        //     // onRemoveWord();
+        //     removeWord(w, l, s);
         // }
         // const stanza = getStanza(s);
         // const line = getLine(s, l);
@@ -38,13 +39,21 @@
         // }
     };
 
-    // TODO: merge lines
-    const onRemoveBeforeWord = (s, l, w) => {
+    const onRemoveBeforeWord = (e, s, l, w) => {
         setIndexes(s, l, w);
-        if (l === 0) {
-            mergeStanzas(s);
-        } else {
-            mergeLines(s, l);
+
+        const { word, punct } = e.detail;
+        updateWord(word);
+
+        // if first word
+        if (w === 0) {
+            if (l > 0) { // if not first line merge lines
+                mergeLines(s, l);
+            } else if (s > 0) { // if first line merge stanzas
+                mergeStanzas(s);
+            }
+        } else if (!punct) { // merge words if not punctuation
+            mergeWords(s, l, w);
         }
     };
 
@@ -76,32 +85,44 @@
         removeLine();
         if (!getStanza().length) {
             removeStanza();
-        } else {
-            onBackLine(s, l, wordIndex);
         }
     };
 
     const onEnter = (e, s, l, w) => {
         setIndexes(s, l, w);
-        const words = getLine();
-        const word = e.detail.word;
-        updateWord(word);
 
-        // TODO: divide bef / aft word cases
-        if (w < words.length - 1) {
-            console.log('enter word', words, word, w);
-            splitLine(s, l, w);
-            //setWordIndex(++w);
-        } else {
-            console.log('enter word - new line', words, word, w)
-            onAddLine(s, l);
+        const words = getLine();
+        const { word, pos } = e.detail;
+        //updateWord(word);
+        setWord(word, w, l, s);
+
+        //if enter after word
+        if (pos === word.length) {
+            // if the last word in line insert line after
+            if (w === words.length - 1) {
+                onAddLine(s, l, [ '' ]);
+            } else {
+                // insert line, this word in first part
+                splitLine(s, l, w + 1);
+            }
+        } else if (pos === 0) { // if enter before word
+            // if first word insert line before
+            if (w === 0) {
+                onAddLine(s, l - 1, [ '' ]);
+            } else {
+                // insert line, this word in second part
+                splitLine(s, l, w);
+            }
+        } else { // enter within word - split word into 2, then split line into 2
+            splitWord(s, l, w, pos);
+            splitLine(s, l, w + 1);
         }
     };
 
     const onSpace = (e, s, l, w) => {
         setIndexes(s, l, w);
         const words = getLine();
-        const word = e.detail.word;
+        const { word, pos } = e.detail;
         updateWord(word);
 
         console.log('space', words, word, wordIndex)
@@ -109,10 +130,15 @@
         if (!word) {
             return;
         }
-        if (wordIndex < words.length - 1 && !getWord(wordIndex + 1)) {
-            return;
+        if (pos === word.length) {
+            // insert word after this
+            addWord('');
+        } else if (pos === 0) {
+            // insert word before this
+            addWord('', w - 1);
+        } else { // space within word - split into 2
+            splitWord(s, l, w, pos);
         }
-        addWord('');
     };
 
     const onPunct = (e, s, l, w) => {
@@ -174,10 +200,12 @@
         setIndexes(s, l, w);
         const lines = getStanza();
 
-        console.log('back to line', lines, l)
+        // console.log('back to line', getLine(), getLine().length - 1)
         if (l > 0) {
             setLineIndex(--l);
             setWordIndex(getLine().length - 1);
+            console.log('idxs', stanzaIndex, lineIndex, wordIndex)
+            stanzas = stanzas
         } else {
             onBackStanza(s, l, w);
         }
@@ -209,9 +237,10 @@
 
     const onAddStanza = (lines, s) => {
         setIndexes(s);
+        const stanza = getStanza(s > 0 ? s - 1 : 0);
         console.log('add st', s, getStanza());
 
-        if (getStanza() && getStanza().length && getLine(0)) {
+        if (stanza && stanza.length && stanza[0]) {
             addStanza(lines, s);
         }
     };
@@ -230,27 +259,34 @@
     };
 
     // change args order
-    const onAddLine = (s = stanzaIndex, l, value = [ '' ]) => {
+    const onAddLine = (s = stanzaIndex, l, newLine) => {
         setIndexes(s, l);
         const line = getLine();
-
+        const isNewEmpty = isLineEmpty(newLine);
         console.log('add line', line);
 
-        if (!line || !line.length || !getWord(0, l)) {
+        // if current line is empty
+        if (l >= 0 && isLineEmpty(line)) {
             console.log('rm line', line, l)
-            removeLine();
-            if (!getStanza(s).length) {
+            // remove this line
+            if (isNewEmpty) {
+                removeLine();
+            }
+
+            if (!getStanza(s).length) { // if stanza is empty, remove it
                 removeStanza(s);
                 setStanzaIndex(stanzaIndex + 1);
                 setLineIndex(0);
-            } else if (lineIndex === getStanza().length) {
-                setLineIndex(--l);
+            } else if (l === getStanza().length) { // if the last line, add stanza
+                setLineIndex(0);
                 onAddStanza([ [ '' ] ], s);
-            } else {
+            } else if (l === 0) {  // if the first line, add stanza
+                onAddStanza([ [ '' ] ], s - 1);
+            } else if (isNewEmpty) { // if new line is also empty: 2 empty lines => new stanza
                 splitStanza(s, l);
             }
         } else {
-            addLine(value);
+            addLine(isNewEmpty ? [ '' ] : newLine, l, s);
             setWordIndex(0);
         }
     };
@@ -281,6 +317,7 @@
         const line1 = line.slice(0, w);
         const line2 = line.slice(w, line.length ? line.length : 1);
         onAddLine(s, l, line1);
+        // onAddLine(s, l + 1, [ '' ]);  // bad pattern
         onAddLine(s, l + 1, line2);
         removeLine(l);
         setIndexes(s, l + 1, 0);
@@ -289,11 +326,36 @@
     const mergeLines = (s, l) => {
         const line1 = getLine(l - 1, s);
         const line2 = getLine(l, s);
-        const line = line1.concat(line2);
-        onAddLine(s, l - 1, line);
+        let line = line1.concat(line2);
+        if (isLineEmpty(line1)) {
+            line = line2;
+        } else if (isLineEmpty(line2)) {
+            line = line1;
+        }
         removeLine(l - 1, s);
-        removeLine(l, s);
+        removeLine(l - 1, s);
+        onAddLine(s, l - 2, line);
         setIndexes(s, l - 1, line1.length);
+    };
+
+    const splitWord = (s, l, w, pos) => {
+        const word = getWord(w, l, s);
+        const word1 = word.slice(0, pos);
+        const word2 = word.slice(pos, word.length ? word.length : 1);
+        addWord(word1, w, l, s);
+        addWord(word2, w + 1, l, s);
+        removeWord(w);
+        setIndexes(s, l, w + 1);
+    };
+
+    const mergeWords = (s, l, w) => {
+        const word1 = getWord(w - 1, l, s);
+        const word2 = getWord(w, l, s);
+        const word = word1.concat(word2);
+        addWord(word, w, l, s);
+        removeWord(w, l, s);
+        removeWord(w - 1, l, s);
+        setIndexes(s, l, w - 1);
     };
 
     const onGetRhymes = async (s, l) => {
@@ -321,10 +383,25 @@
     };
 
     const removeStanza = (s = stanzaIndex) => {
-        remove(stanzas, s);
-        setStanzaIndex(s > 0 ? --s : 0);
-        if (getStanza().length) {
-            setLineIndex(getStanza().length - 1);
+        setStanzaIndex(s);
+
+        // if the last stanza, set the last line of previous one
+        if (s === stanzas.length - 1 && s > 0) {
+            setStanzaIndex(--s);
+            const stanza = getStanza(s);
+            if (stanza.length) {
+                setLineIndex(stanza.length - 1);
+            }
+        } else {  // set the first line of the next one
+            setLineIndex(0);
+        }
+
+        // leave at least one stanza
+        if (stanzas.length > 1) {
+            remove(stanzas, s);
+        } else {
+            setStanza([['']], 0);
+            setIndexes(0, 0, 0);
         }
     };
 
@@ -353,7 +430,16 @@
             console.log('rm ln', s, l, getStanza(s));
             remove(getStanza(s), l);
             setStanza((getStanza())); // hack
+            if (l > 0) {
+                setLineIndex(--l);
+            }
+            setWordIndex(0);
+            // console.log('IDX', stanzaIndex, lineIndex, wordIndex)
         }
+    };
+
+    const isLineEmpty = line => {
+        return !line || !line.length || line.length === 1 && !line[0];
     };
 
     const getWord = (w = wordIndex, l = lineIndex, s = stanzaIndex) => {
@@ -377,9 +463,9 @@
         }
     };
 
-    const addWord = (word, w = wordIndex) => {
+    const addWord = (word, w = wordIndex, l = lineIndex, s = stanzaIndex) => {
         setWordIndex(++w);
-        setLine(push(getLine(), w, word));
+        setLine(push(getLine(l, s), w, word));
     };
 
     const removeWord = (w = wordIndex, l = lineIndex, s = stanzaIndex) => {
@@ -437,8 +523,8 @@
                                     on:focus={() => onFocus(s, l, w)}
                                     on:blur={e => onBlur(e, s, l, w)}
                                     on:remove={() => onRemoveWord(s, l, w)}
-                                    on:remove-before={() => onRemoveBeforeWord(s, l, w)}
-                                    on:remove-after={() => onRemoveAfterWord(s, l, w)}
+                                    on:remove-before={e => onRemoveBeforeWord(e, s, l, w)}
+                                    on:remove-after={e => onRemoveAfterWord(e, s, l, w)}
                                     on:enter={e => onEnter(e, s, l, w)}
                                     on:space={e => onSpace(e, s, l, w)}
                                     on:punct={e => onPunct(e, s, l, w)}
@@ -451,8 +537,8 @@
                     </div>
 
                     <div class="right-menu">
-                        <IconButton icon="cross" size="10" title={removeLineTitle} on:click={() => onRemoveLine(s, l)}/>
-                        <IconButton icon="plus" size="11" title={removeLineTitle} on:click={() => onAddLine(s, l)}/>
+                        <IconButton icon="cross" size="13" padding="4" title={removeLineTitle} on:click={() => onRemoveLine(s, l)}/>
+                        <IconButton icon="plus" size="14"  padding="4" title={removeLineTitle} on:click={() => onAddLine(s, l)}/>
                         <!--                        <button on:click={() => onGetRhymes(s, l)}>Get rhyme</button>-->
                     </div>
                 </div>
