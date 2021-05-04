@@ -5,6 +5,8 @@ import livereload from 'rollup-plugin-livereload';
 import { terser } from 'rollup-plugin-terser';
 import css from 'rollup-plugin-css-only';
 import preprocess from 'svelte-preprocess';
+import replace from '@rollup/plugin-replace';
+import {config} from 'dotenv';
 
 const production = !process.env.ROLLUP_WATCH;
 
@@ -71,7 +73,16 @@ export default {
 
 		// If we're building for production (npm run build
 		// instead of npm run dev), minify
-		production && terser()
+		production && terser(),
+
+		replace({
+			process: JSON.stringify({
+				env: {
+					// API_URL: process.env.API_URL
+					...config().parsed
+				}
+			}),
+		}),
 	],
 	watch: {
 		clearScreen: false

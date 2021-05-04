@@ -3,6 +3,7 @@
     import IconButton from "./IconButton.svelte";
     import Word from "./Word.svelte";
     import { push, remove } from "./common/arrays";
+    import { getRhymes } from "./api/rhymes";
 
     export let stanzas = [];
 
@@ -96,7 +97,6 @@
 
         const words = getLine();
         const { word, pos } = e.detail;
-        //updateWord(word);
         setWord(word, w, l, s);
 
         //if enter after word
@@ -365,11 +365,11 @@
 
     const onGetRhymes = async (s, l) => {
         const word = getLastWord(l, s);
-        let response = getRhymes(word);
-        if (response.ok) {
-            rhymes = await response.json();
+        let response = await getRhymes(word);
+        if (response.data) {
+            const rhymes = response.data;
         } else {
-            console.log("Ошибка HTTP: " + response.status);
+            console.log("Ошибка: " + response.status);
         }
     };
 
@@ -542,11 +542,11 @@
                         {/each}
                     </div>
 
-                    <div class="right-menu">
-                        <IconButton icon="bulb" size="18" padding="4" title={getRhymeTitle} on:click={() => onGetRhymes(s, l)}/>
-                        <IconButton icon="cross" size="14" padding="4" title={removeLineTitle} on:click={() => onRemoveLine(s, l)}/>
-                        <IconButton icon="plus" size="14"  padding="4" title={addLineTitle} on:click={() => onAddLine(s, l)}/>
-                    </div>
+<!--                    <div class="right-menu">-->
+<!--                        <IconButton icon="bulb" size="18" padding="4" title={getRhymeTitle} on:click={() => onGetRhymes(s, l)}/>-->
+<!--                        <IconButton icon="cross" size="14" padding="4" title={removeLineTitle} on:click={() => onRemoveLine(s, l)}/>-->
+<!--                        <IconButton icon="plus" size="14"  padding="4" title={addLineTitle} on:click={() => onAddLine(s, l)}/>-->
+<!--                    </div>-->
                 </div>
             {/each}
         </div>
@@ -564,7 +564,7 @@
     }
 
     .stanza {
-        margin-bottom: 2rem;
+        margin-bottom: 1rem;
         padding: 0.5rem;
 
         &:hover, &:focus-within {
@@ -576,7 +576,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0.5rem 0.5rem;
+        padding: 0.25rem 0.5rem;
 
         .right-menu {
             display: flex;

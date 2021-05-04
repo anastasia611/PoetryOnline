@@ -32,22 +32,25 @@
         on:tabfocus={() => focused = true}
         on:blur={() => focused = false}>
     {#if Icon}
-        <svelte:component this={Icon} ref="svg" {size}/>
+        <svelte:component this={Icon} ref="svg" {title} {size}/>
     {/if}
 </button>
 
 <style lang="scss">
     button {
+        //background-color: hotpink;
         padding: var(--button-padding);
         width: calc(var(--size) + 2 * var(--button-padding));
         height: calc(var(--size) + 2 * var(--button-padding));
+        line-height: calc(var(--size) + 2 * var(--button-padding));
         border: none;
         background: none;
-        z-index: 1;
 
         :global([ref=svg]) {
             fill: #500808AA;
             opacity: 0.2;
+            position: initial;
+            display: block;
         }
 
         &:hover, &:focus {
@@ -57,7 +60,7 @@
         }
 
         &.key-focus-visible {
-            outline: #888888 0.2rem solid;
+            outline: #888888 0.125rem solid;
 
             :global([ref=svg]) {
                 opacity: 1;

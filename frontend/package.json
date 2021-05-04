@@ -10,7 +10,9 @@
   "devDependencies": {
     "@rollup/plugin-commonjs": "^17.0.0",
     "@rollup/plugin-node-resolve": "^11.0.0",
+    "@rollup/plugin-replace": "^2.4.2",
     "autoprefixer": "^10.2.5",
+    "dotenv": "^8.2.0",
     "postcss": "^8.2.9",
     "postcss-import": "^14.0.1",
     "postcss-scss": "^3.0.5",

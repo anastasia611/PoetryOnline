@@ -1,11 +1,11 @@
 <script>
     import RemoveButton from "./IconButton.svelte";
     import { createEventDispatcher, onDestroy, onMount } from 'svelte';
-    import { isLetter, isPunctuationMark, isWord } from "./common/strings";
+    import { isLetter, isPunctuationMark } from "./common/strings";
     import tabFocus from "./actions/tabFocus";
     import { convertPixelsToRem, setCaretPosition } from "./common/dom";
 
-    export let word = "";
+    export let word = '';
     export let editable = false;
     export let pos = 0;
 
@@ -178,8 +178,8 @@
     .word {
         --size: 1rem;
 
-        display: inline-block;
-        padding: 0.25rem 0.25rem;
+        display: inline-flex;
+        padding: 0.125rem 0.125rem;
         line-height: var(--size);
         color: #222;
         cursor: default;
@@ -188,8 +188,9 @@
         user-select: none;
 
         & .remove {
-            display: inline-block;
+            display: flex;
             opacity: 0;
+            position: relative;
         }
 
         &:hover, &:focus, &:focus-within {
@@ -216,7 +217,7 @@
         }
 
         &.key-focus-visible {
-            outline: #888888 0.2rem solid;
+            outline: #888888 0.125rem solid;
         }
     }
 
