@@ -3,7 +3,7 @@
     import { createEventDispatcher, onDestroy, onMount } from 'svelte';
     import { isLetter, isPunctuationMark, isWord } from "./common/strings";
     import tabFocus from "./actions/tabFocus";
-    import { convertPixelsToRem } from "./common/dom";
+    import { convertPixelsToRem, setCaretPosition } from "./common/dom";
 
     export let word = "";
     export let editable = false;
@@ -39,7 +39,7 @@
     };
 
     const onKeyPress = e => {
-        pos = e.target.selectionEnd;
+        const pos = e.target.selectionEnd;
         word = getWordContent();
 
         if (!isLetter(e.key) || isPunctuationMark(word)) {
@@ -51,6 +51,9 @@
         } else if (isPunctuationMark(e.key)) {
             dispatch('punct', { word, sign: e.key });
         } else if (e.key === ' ') {
+            if (word.length === 1) {
+                word = word.replace('-', '—');
+            }
             dispatch('space', { word, pos });
         }
 
@@ -58,7 +61,7 @@
     };
 
     const onKeyDown = (e) => {
-        pos = e.target.selectionEnd;
+        const pos = e.target.selectionEnd;
         word = getWordContent();
 
         if (e.key === 'ArrowLeft' && pos === 0) {
@@ -87,7 +90,7 @@
 
     const getWordContent = () => {
         // return (wordElement.textContent || '').trim();
-        return wordElement.value;
+        return wordElement.value || '';
     };
 
     const onFocus = () => {
@@ -139,6 +142,10 @@
         console.log(word, editable)
         wordElement.focus();
     }
+    $: if (wordElement && pos) {
+        console.log('Cursor',word, pos)
+        setCaretPosition(wordElement, 0);
+    }
 
 </script>
 
@@ -169,9 +176,11 @@
 
 <style lang="scss">
     .word {
+        --size: 1rem;
+
         display: inline-block;
         padding: 0.25rem 0.25rem;
-        line-height: 1rem;
+        line-height: var(--size);
         color: #222;
         cursor: default;
         border-radius: 0.125rem;
@@ -196,9 +205,9 @@
     .word-text {
         color: #500808;
         border: none;
-        font-size: 1rem;
-        line-height: 1rem;
-        min-width: 1rem;
+        font-size: var(--size);
+        line-height: var(--size);
+        min-width: var(--size);
         background: none;
         padding: 0;
 

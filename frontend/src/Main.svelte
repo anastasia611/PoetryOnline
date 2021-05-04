@@ -46,7 +46,7 @@
 
     .container {
         box-shadow: 0 6px 8px 0 #b7b1ac;
-        width: 75%;
+        min-width: 75%;
         background-color: white;
     }
 

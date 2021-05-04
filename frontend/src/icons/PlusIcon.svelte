@@ -1,5 +1,5 @@
 <script>
-    export let title = 'Plus icon';
+    export let title = '';
     export let size = 8;
     export let ref;
 </script>
@@ -10,6 +10,9 @@
      viewBox="0 0 401.994 401.994"
      style="enable-background:new 0 0 401.994 401.994;"
      xml:space="preserve">
+
+    <title>{title}</title>
+
     <g>
         <path d="M394,154.175c-5.331-5.33-11.806-7.994-19.417-7.994H255.811V27.406c0-7.611-2.666-14.084-7.994-19.414
                 C242.488,2.666,236.02,0,228.398,0h-54.812c-7.612,0-14.084,2.663-19.414,7.993c-5.33,5.33-7.994,11.803-7.994,19.414v118.775

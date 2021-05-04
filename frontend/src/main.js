@@ -1,9 +1,6 @@
 import App from './Main.svelte';
 import {parseWords} from "./common/strings";
 
-// ['Я', 'к', 'вам', 'пишу', '-', 'чего', 'же', 'боле', '?'],
-// ['Что', 'я', 'могу', 'еще', 'сказать', '?']
-
 const stanzas = [
     [
         'Молчи, скрывайся и таи',

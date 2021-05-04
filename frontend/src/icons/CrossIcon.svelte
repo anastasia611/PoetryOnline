@@ -1,5 +1,5 @@
 <script>
-    export let title = 'Cross icon';
+    export let title = '';
     export let size = 1;
     export let ref;
 </script>

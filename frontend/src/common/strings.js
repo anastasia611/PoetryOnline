@@ -1,7 +1,8 @@
-const punct = /!|"|-|:|;|—|\?|\.|,/i;
-const letter = /[a-zA-zа-яёА-ЯЁ]/i;
-const letters = /[a-zA-zа-яёА-ЯЁ]+/i;
+const punct = /!|"|:|;|—|\?|\.|,/i;
+const letter = /[a-zA-zа-яёА-ЯЁ\-]/i;
+const letters = /[a-zA-zа-яёА-ЯЁ\-]+/i;
 
+// TODO: defis
 export function isLetter(str) {
     if (!str) return false;
     return str.length === 1 && str
@@ -21,7 +22,7 @@ export function isPunctuationMark(str) {
 
 export function parseWords(str) {
     if (!str) return false;
-    return str.split(/\s+|([,\-—.;:?!()])/).filter(Boolean);
+    return str.split(/\s+|([,\—.;:?!()])/).filter(Boolean);
 }
 
 export function capitalize(string) {

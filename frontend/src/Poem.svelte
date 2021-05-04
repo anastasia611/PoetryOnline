@@ -9,11 +9,14 @@
     export let stanzaIndex = -1;
     export let lineIndex = -1;
     export let wordIndex = -1;
+    let wordPos;
 
     const dispatch = createEventDispatcher();
 
     const title = 'Стихотворение';
+    const addLineTitle = 'Добавить строку';
     const removeLineTitle = 'Удалить строку';
+    const getRhymeTitle = 'Подобрать рифму';
 
     //TODO: set correct word pos
 
@@ -324,11 +327,12 @@
     };
 
     const mergeLines = (s, l) => {
-        const line1 = getLine(l - 1, s);
-        const line2 = getLine(l, s);
+        let line1 = getLine(l - 1, s);
+        let line2 = getLine(l, s);
         let line = line1.concat(line2);
         if (isLineEmpty(line1)) {
             line = line2;
+            line1 = [];
         } else if (isLineEmpty(line2)) {
             line = line1;
         }
@@ -346,6 +350,7 @@
         addWord(word2, w + 1, l, s);
         removeWord(w);
         setIndexes(s, l, w + 1);
+        // wordPos = 0;
     };
 
     const mergeWords = (s, l, w) => {
@@ -360,12 +365,12 @@
 
     const onGetRhymes = async (s, l) => {
         const word = getLastWord(l, s);
-        /*let response = await fetch(`${URL}?word=${word}`);
+        let response = getRhymes(word);
         if (response.ok) {
             rhymes = await response.json();
         } else {
             console.log("Ошибка HTTP: " + response.status);
-        }*/
+        }
     };
 
     const getStanza = (s = stanzaIndex) => {
@@ -519,6 +524,7 @@
                         {#each words as word, w}
                             <Word
                                     {word}
+                                    pos={wordPos}
                                     editable={s === stanzaIndex && l === lineIndex && w === wordIndex}
                                     on:focus={() => onFocus(s, l, w)}
                                     on:blur={e => onBlur(e, s, l, w)}
@@ -537,9 +543,9 @@
                     </div>
 
                     <div class="right-menu">
-                        <IconButton icon="cross" size="13" padding="4" title={removeLineTitle} on:click={() => onRemoveLine(s, l)}/>
-                        <IconButton icon="plus" size="14"  padding="4" title={removeLineTitle} on:click={() => onAddLine(s, l)}/>
-                        <!--                        <button on:click={() => onGetRhymes(s, l)}>Get rhyme</button>-->
+                        <IconButton icon="bulb" size="18" padding="4" title={getRhymeTitle} on:click={() => onGetRhymes(s, l)}/>
+                        <IconButton icon="cross" size="14" padding="4" title={removeLineTitle} on:click={() => onRemoveLine(s, l)}/>
+                        <IconButton icon="plus" size="14"  padding="4" title={addLineTitle} on:click={() => onAddLine(s, l)}/>
                     </div>
                 </div>
             {/each}
@@ -590,6 +596,6 @@
     }
 
     h2 {
-        margin-left: 0.75rem;
+        margin-left: 2.25rem;
     }
 </style>
