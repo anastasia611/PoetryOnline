@@ -96,6 +96,7 @@
     };
 
     const onFocus = () => {
+        console.log('foc', wordElement.value)
         dispatch('focus');
     };
 
@@ -156,7 +157,7 @@
      on:click={onFocus}>
 
     <div class="remove">
-        <RemoveButton icon="cross" size="10" {title} on:click={onRemove}/>
+        <RemoveButton icon="cross" size="10" {title} changeOpacity on:click={onRemove}/>
     </div>
 
     <input
@@ -206,7 +207,7 @@
         }
 
         &.chosen {
-            border: rosybrown solid 0.125rem;
+            border: #500808AA solid 0.125rem;
         }
     }
 

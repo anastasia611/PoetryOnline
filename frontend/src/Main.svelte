@@ -29,6 +29,7 @@
         width: 100%;
         font-size: 1.5rem;
         background-color: #F4C8BC;
+        box-shadow: 0 4px 6px 0 #b7b1ac;
         z-index: 3;
 
         & ul {

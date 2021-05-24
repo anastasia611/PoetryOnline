@@ -22,6 +22,7 @@
     const chooseTargetTooltip = 'Выберите слово, к которому нужно подобрать рифму';
     const chooseRhymeTooltip = 'Выберите рифму из списка';
     const rhymeConfirm = 'Готово';
+    const rhymeReject = 'Закрыть';
 
     let chooseWord = false;
     let targetLineIndex = -1;
@@ -35,12 +36,18 @@
     //TODO: set correct word pos
 
     const onFocus = (s, l, w) => {
-        if (chooseWord && s === stanzaIndex) {
-            chosenLineIndex = l;
-            chosenWordIndex = w;
+        if (chooseWord) {
+            // if within this stanza update selection
+            if (s === stanzaIndex) {
+                chosenLineIndex = l;
+                chosenWordIndex = w;
+            } else { // else update target line to get rhymes to
+                targetLineIndex = l;
+                setChosenLineIndex(l, getStanza(s).length);
+                setChosenWordIndex(s);
+            }
         }
         setIndexes(s, l, w);
-        console.log('foc')
     };
 
     const onBlur = (e, s, l, w) => {
@@ -245,6 +252,7 @@
         }
     };
 
+    // TODO: debounce
     const onUp = (s, l, w) => {
         setIndexes(s, l, w);
         onBackLine(s, l, w);
@@ -536,33 +544,30 @@
         setIndexes(-1, -1, -1);
     };
 
+    const setChosenLineIndex = (l = lineIndex, stanzaLength = getStanza().length) => {
+        if (l > 1) {
+            chosenLineIndex = l - 2;
+        } else if (l > 0) {
+            chosenLineIndex = l - 1;
+        } else if (l < stanzaLength - 2) {
+            chosenLineIndex = l + 2;
+        } else if (l < stanzaLength - 1) {
+            chosenLineIndex = l + 1;
+        }
+    };
+
+    const setChosenWordIndex = (s = stanzaIndex) => {
+        chosenWordIndex = getLine(chosenLineIndex, s).length - 1;
+    };
+
     const onBulbClick = (s, l) => {
         setIndexes(s, l);
-
-        if (chooseWord && l === targetLineIndex) {
-            chooseWord = false;
-        } else {
-            chooseWord = true;
-        }
-
+        chooseWord = !(chooseWord && l === targetLineIndex);
         targetLineIndex = l;
 
-        const stanzaLength = getStanza().length;
-
         // set chosen rhyme line
-        if (lineIndex > 1) {
-            chosenLineIndex = lineIndex - 2;
-        } else if (lineIndex > 0) {
-            chosenLineIndex = lineIndex - 1;
-        } else if (lineIndex < stanzaLength - 2) {
-            chosenLineIndex = lineIndex + 2;
-        } else if (lineIndex < stanzaLength - 1) {
-            chosenLineIndex = lineIndex + 1;
-        }
-
-        chosenWordIndex = getLine(chosenLineIndex, s).length - 1;
-
-        stanzas = stanzas;
+        setChosenLineIndex();
+        setChosenWordIndex();
     };
 
     const onClickOutsideBulb = (s) => {
@@ -571,6 +576,7 @@
         }
     };
 
+    // TODO: trans between stanzas
     const onConfirmRhymes = () => {
         // TODO: move to states machine-like maybe??
         if (rhymesGot) {
@@ -580,6 +586,18 @@
         } else {
             onGetRhymes();
         }
+    };
+
+    const onRejectRhymes = () => {
+        if (rhymesGot) {
+            rhymesGot = false;
+        } else {
+            chooseWord = false;
+        }
+    };
+
+    const isLineChosenForRhymes = (s, l) => {
+        return (chooseWord || rhymesGot) && s === stanzaIndex && l === targetLineIndex;
     };
 
 </script>
@@ -615,7 +633,7 @@
                                     on:down={() => onDown(s, l, w)}
                                     on:editFinished/>
                         {/each}
-                        {#if rhymesGot && l === targetLineIndex}
+                        {#if rhymesGot && l === targetLineIndex && s === stanzaIndex}
                             <select bind:value={selectedRhyme}>
                                 {#each rhymes as rhyme}
                                     <option>{rhyme}</option>
@@ -625,12 +643,12 @@
                     </div>
 
                     <div class="right-menu">
-                        <div class="bulb-container"
-                             on:click={() => onBulbClick(s, l)}>
-                            <div class="menu-button">
+                        <div class="bulb-container">
+                            <div class="menu-button" class:active={isLineChosenForRhymes(s, l)}>
                                 <IconButton
                                         icon="bulb" size="18" padding="4"
-                                        title={getRhymeTitle}/>
+                                        changeOpacity title={getRhymeTitle}
+                                        on:click={() => onBulbClick(s, l)}/>
                             </div>
                         </div>
                         {#if (chooseWord || rhymesGot) && s === stanzaIndex && l === targetLineIndex}
@@ -641,20 +659,23 @@
                                 {:else}
                                     {chooseTargetTooltip}
                                 {/if}
-                                <div>
-                                    <button class="confirm" title={rhymeConfirm} on:click={onConfirmRhymes}>
-                                        {rhymeConfirm}
-                                    </button>
+                                <div class="tooltip-bar">
+                                    <IconButton icon="check" size="10" padding="2" title={rhymeConfirm}
+                                                text={rhymeConfirm} borders
+                                                on:click={onConfirmRhymes}/>
+                                    <IconButton icon="cross" size="10" padding="2" title={rhymeReject}
+                                                text={rhymeReject} borders
+                                                on:click={onRejectRhymes}/>
                                 </div>
                             </div>
                         {/if}
                         <div class="menu-button">
                             <IconButton icon="cross" size="18" padding="4" title={removeLineTitle}
-                                        on:click={() => onRemoveLine(s, l)}/>
+                                        changeOpacity on:click={() => onRemoveLine(s, l)}/>
                         </div>
                         <div class="menu-button">
                             <IconButton icon="plus" size="18" padding="4" title={addLineTitle}
-                                        on:click={() => onAddLine(s, l)}/>
+                                        changeOpacity on:click={() => onAddLine(s, l)}/>
                         </div>
                     </div>
                 </div>
@@ -665,32 +686,26 @@
 
 <style lang="scss">
     .tooltip {
+        --color: #bc8f8fee;
+
         position: absolute;
         transform: translate(0, -100%);
         top: 0;
-        left: 2px;
+        left: -0.25rem;
         min-width: 15rem;
-        background-color: rosybrown;
+        background-color: var(--color);
         box-shadow: none;
-        padding: 0.25rem 0.25rem;
+        padding: 0.5rem;
         text-align: left;
         font-size: .8em;
         z-index: 2;
         box-sizing: border-box;
         border-radius: 0.25rem;
-        color: #500808;
+        //color: #500808;
 
         & .tooltip-arrow {
-            border-width: 5px 5px 0 5px;
-            border-left-color: transparent;
-            border-right-color: transparent;
-            border-bottom-color: transparent;
-            bottom: -5px;
-            margin-top: 0;
-            margin-bottom: 0;
-
             &::before {
-                border-width: 3px 3px 0 3px;
+                border-width: 0.6rem 0.45rem 0 0.45rem;
                 border-left-color: transparent;
                 border-right-color: transparent;
                 border-bottom-color: transparent;
@@ -701,18 +716,27 @@
                 height: 0;
                 border-style: solid;
                 position: absolute;
-                color: rosybrown;
+                color: var(--color);
             }
         }
 
-        & .confirm {
+        & .tooltip-bar {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 0.25rem;
+        }
+
+        & .tooltip-button {
             background: none;
             height: 1.5rem;
             line-height: 1rem;
             padding: 0.25rem;
-            float: right;
-            border: 0.125rem solid #500808;
             color: #500808;
+            border: none;
+
+            &:hover {
+                border-bottom: 1px solid #500808;
+            }
         }
     }
 
@@ -749,6 +773,10 @@
 
             & .menu-button {
                 opacity: 0;
+
+                &.active {
+                    opacity: 1;
+                }
             }
         }
 
