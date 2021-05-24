@@ -8,6 +8,7 @@
     export let word = '';
     export let editable = false;
     export let pos = 0;
+    export let chosen = false;
 
     const title = 'Удалить слово';
     const dispatch = createEventDispatcher();
@@ -20,7 +21,8 @@
     let destroyed = false;
     let width = 0;
 
-    $: if (editable) {
+    $: if (chosen) {
+        console.log(chosen, word)
     }
 
     const onRemove = () => {
@@ -150,6 +152,7 @@
 </script>
 
 <div class="word"
+     class:chosen={chosen}
      on:click={onFocus}>
 
     <div class="remove">
@@ -179,7 +182,7 @@
         --size: 1rem;
 
         display: inline-flex;
-        padding: 0.125rem 0.125rem;
+        padding: 0.2rem 0.125rem;
         line-height: var(--size);
         color: #222;
         cursor: default;
@@ -190,7 +193,7 @@
         & .remove {
             display: flex;
             opacity: 0;
-            position: relative;
+            margin-right: 0.125rem;
         }
 
         &:hover, &:focus, &:focus-within {
@@ -200,6 +203,10 @@
             & .remove {
                 opacity: 1;
             }
+        }
+
+        &.chosen {
+            border: rosybrown solid 0.125rem;
         }
     }
 

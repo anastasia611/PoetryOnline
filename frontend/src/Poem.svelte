@@ -4,6 +4,7 @@
     import Word from "./Word.svelte";
     import { push, remove } from "./common/arrays";
     import { getRhymes } from "./api/rhymes";
+    import { clickOutside } from './actions/clickOutside';
 
     export let stanzas = [];
 
@@ -18,10 +19,26 @@
     const addLineTitle = 'Добавить строку';
     const removeLineTitle = 'Удалить строку';
     const getRhymeTitle = 'Подобрать рифму';
+    const chooseTargetTooltip = 'Выберите слово, к которому нужно подобрать рифму';
+    const chooseRhymeTooltip = 'Выберите рифму из списка';
+    const rhymeConfirm = 'Готово';
+
+    let chooseWord = false;
+    let targetLineIndex = -1;
+    let chosenLineIndex = -1;
+    let chosenWordIndex = -1;
+
+    let rhymesGot = false;
+    let rhymes;
+    let selectedRhyme;
 
     //TODO: set correct word pos
 
     const onFocus = (s, l, w) => {
+        if (chooseWord && s === stanzaIndex) {
+            chosenLineIndex = l;
+            chosenWordIndex = w;
+        }
         setIndexes(s, l, w);
         console.log('foc')
     };
@@ -363,11 +380,13 @@
         setIndexes(s, l, w - 1);
     };
 
-    const onGetRhymes = async (s, l) => {
-        const word = getLastWord(l, s);
+    const onGetRhymes = async () => {
+        const word = getWord(chosenWordIndex, chosenLineIndex, stanzaIndex);
         let response = await getRhymes(word);
         if (response.data) {
-            const rhymes = response.data;
+            rhymes = response.data;
+            rhymesGot = true;
+            chooseWord = false;
         } else {
             console.log("Ошибка: " + response.status);
         }
@@ -392,7 +411,7 @@
 
         // if the last stanza, set the last line of previous one
         if (s === stanzas.length - 1 && s > 0) {
-            setStanzaIndex(--s);
+            setStanzaIndex(s - 1);
             const stanza = getStanza(s);
             if (stanza.length) {
                 setLineIndex(stanza.length - 1);
@@ -405,7 +424,7 @@
         if (stanzas.length > 1) {
             remove(stanzas, s);
         } else {
-            setStanza([['']], 0);
+            setStanza([ [ '' ] ], 0);
             setIndexes(0, 0, 0);
         }
     };
@@ -461,6 +480,13 @@
         }
     };
 
+    const setLastWord = (word, l = lineIndex, s = stanzaIndex) => {
+        const line = getLine(l, s);
+        if (line) {
+            line[line.length - 1] = word;
+        }
+    };
+
     const setWord = (word, w = wordIndex, l = lineIndex, s = stanzaIndex) => {
         const line = getLine(l, s);
         if (line) {
@@ -470,7 +496,7 @@
 
     const addWord = (word, w = wordIndex, l = lineIndex, s = stanzaIndex) => {
         setWordIndex(++w);
-        setLine(push(getLine(l, s), w, word));
+        setLine(push(getLine(l, s), w, word), l, s);
     };
 
     const removeWord = (w = wordIndex, l = lineIndex, s = stanzaIndex) => {
@@ -510,6 +536,52 @@
         setIndexes(-1, -1, -1);
     };
 
+    const onBulbClick = (s, l) => {
+        setIndexes(s, l);
+
+        if (chooseWord && l === targetLineIndex) {
+            chooseWord = false;
+        } else {
+            chooseWord = true;
+        }
+
+        targetLineIndex = l;
+
+        const stanzaLength = getStanza().length;
+
+        // set chosen rhyme line
+        if (lineIndex > 1) {
+            chosenLineIndex = lineIndex - 2;
+        } else if (lineIndex > 0) {
+            chosenLineIndex = lineIndex - 1;
+        } else if (lineIndex < stanzaLength - 2) {
+            chosenLineIndex = lineIndex + 2;
+        } else if (lineIndex < stanzaLength - 1) {
+            chosenLineIndex = lineIndex + 1;
+        }
+
+        chosenWordIndex = getLine(chosenLineIndex, s).length - 1;
+
+        stanzas = stanzas;
+    };
+
+    const onClickOutsideBulb = (s) => {
+        if (s === stanzaIndex) {
+            chooseWord = false;
+        }
+    };
+
+    const onConfirmRhymes = () => {
+        // TODO: move to states machine-like maybe??
+        if (rhymesGot) {
+            addWord(selectedRhyme, getLine(targetLineIndex).length - 1, targetLineIndex);
+            rhymesGot = false;
+            setIndexes(stanzaIndex, targetLineIndex, wordIndex);
+        } else {
+            onGetRhymes();
+        }
+    };
+
 </script>
 
 <div class="poem">
@@ -517,7 +589,9 @@
         {title}
     </h2>
     {#each stanzas as lines, s}
-        <div class="stanza">
+        <div class="stanza"
+             use:clickOutside
+             on:clickOutside={() => onClickOutsideBulb(s)}>
             {#each lines as words, l}
                 <div class="line">
                     <div>
@@ -525,6 +599,7 @@
                             <Word
                                     {word}
                                     pos={wordPos}
+                                    chosen={chooseWord && s === stanzaIndex && l === chosenLineIndex && w === chosenWordIndex}
                                     editable={s === stanzaIndex && l === lineIndex && w === wordIndex}
                                     on:focus={() => onFocus(s, l, w)}
                                     on:blur={e => onBlur(e, s, l, w)}
@@ -540,13 +615,48 @@
                                     on:down={() => onDown(s, l, w)}
                                     on:editFinished/>
                         {/each}
+                        {#if rhymesGot && l === targetLineIndex}
+                            <select bind:value={selectedRhyme}>
+                                {#each rhymes as rhyme}
+                                    <option>{rhyme}</option>
+                                {/each}
+                            </select>
+                        {/if}
                     </div>
 
-<!--                    <div class="right-menu">-->
-<!--                        <IconButton icon="bulb" size="18" padding="4" title={getRhymeTitle} on:click={() => onGetRhymes(s, l)}/>-->
-<!--                        <IconButton icon="cross" size="14" padding="4" title={removeLineTitle} on:click={() => onRemoveLine(s, l)}/>-->
-<!--                        <IconButton icon="plus" size="14"  padding="4" title={addLineTitle} on:click={() => onAddLine(s, l)}/>-->
-<!--                    </div>-->
+                    <div class="right-menu">
+                        <div class="bulb-container"
+                             on:click={() => onBulbClick(s, l)}>
+                            <div class="menu-button">
+                                <IconButton
+                                        icon="bulb" size="18" padding="4"
+                                        title={getRhymeTitle}/>
+                            </div>
+                        </div>
+                        {#if (chooseWord || rhymesGot) && s === stanzaIndex && l === targetLineIndex}
+                            <div class="tooltip">
+                                <div class="tooltip-arrow"></div>
+                                {#if rhymesGot}
+                                    {chooseRhymeTooltip}
+                                {:else}
+                                    {chooseTargetTooltip}
+                                {/if}
+                                <div>
+                                    <button class="confirm" title={rhymeConfirm} on:click={onConfirmRhymes}>
+                                        {rhymeConfirm}
+                                    </button>
+                                </div>
+                            </div>
+                        {/if}
+                        <div class="menu-button">
+                            <IconButton icon="cross" size="18" padding="4" title={removeLineTitle}
+                                        on:click={() => onRemoveLine(s, l)}/>
+                        </div>
+                        <div class="menu-button">
+                            <IconButton icon="plus" size="18" padding="4" title={addLineTitle}
+                                        on:click={() => onAddLine(s, l)}/>
+                        </div>
+                    </div>
                 </div>
             {/each}
         </div>
@@ -554,6 +664,58 @@
 </div>
 
 <style lang="scss">
+    .tooltip {
+        position: absolute;
+        transform: translate(0, -100%);
+        top: 0;
+        left: 2px;
+        min-width: 15rem;
+        background-color: rosybrown;
+        box-shadow: none;
+        padding: 0.25rem 0.25rem;
+        text-align: left;
+        font-size: .8em;
+        z-index: 2;
+        box-sizing: border-box;
+        border-radius: 0.25rem;
+        color: #500808;
+
+        & .tooltip-arrow {
+            border-width: 5px 5px 0 5px;
+            border-left-color: transparent;
+            border-right-color: transparent;
+            border-bottom-color: transparent;
+            bottom: -5px;
+            margin-top: 0;
+            margin-bottom: 0;
+
+            &::before {
+                border-width: 3px 3px 0 3px;
+                border-left-color: transparent;
+                border-right-color: transparent;
+                border-bottom-color: transparent;
+                top: calc(100%);
+                content: '';
+                display: block;
+                width: 0;
+                height: 0;
+                border-style: solid;
+                position: absolute;
+                color: rosybrown;
+            }
+        }
+
+        & .confirm {
+            background: none;
+            height: 1.5rem;
+            line-height: 1rem;
+            padding: 0.25rem;
+            float: right;
+            border: 0.125rem solid #500808;
+            color: #500808;
+        }
+    }
+
     .poem {
         display: flex;
         width: fit-content;
@@ -579,19 +741,31 @@
         padding: 0.25rem 0.5rem;
 
         .right-menu {
+            position: relative;
             display: flex;
             align-items: center;
             float: right;
             margin-left: 1rem;
-            opacity: 0;
+
+            & .menu-button {
+                opacity: 0;
+            }
         }
 
         &:hover, &:focus, &:focus-within {
             background-color: #E5E5E5;
 
             .right-menu {
-                opacity: 1;
+                & .menu-button {
+                    opacity: 1;
+                }
             }
+        }
+    }
+
+    .bulb-container {
+        &:hover + .tooltip {
+            display: block;
         }
     }
 

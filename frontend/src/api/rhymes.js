@@ -4,7 +4,7 @@ export async function getRhymes(word) {
     let response = await fetch(`${getRoute('getRhymes')}?word=${word}`);
      if (response.ok) {
          return {
-             data: response.json()
+             data: await response.json()
          };
      } else {
          console.log("Ошибка HTTP: " + response.status);

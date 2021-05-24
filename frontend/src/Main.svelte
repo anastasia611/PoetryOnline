@@ -29,7 +29,7 @@
         width: 100%;
         font-size: 1.5rem;
         background-color: #F4C8BC;
-        z-index: 1;
+        z-index: 3;
 
         & ul {
             list-style: none;
