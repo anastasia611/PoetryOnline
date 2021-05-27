@@ -2,7 +2,9 @@ package server;
 
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpServer;
+import rhymes.ErrorCodes;
 import rhymes.Rhymes;
+import rhymes.RhymesResult;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -33,6 +35,10 @@ public class JsonServer {
     private static final String METHOD_OPTIONS = "OPTIONS";
     private static final String ALLOWED_METHODS = METHOD_GET + "," + METHOD_OPTIONS;
 
+    private static Map<ErrorCodes, String> errors = new HashMap<>() {{
+        put(ErrorCodes.STRESS_NEEDED, "Stress needed");
+    }};
+
     public static void main(final String... args) throws IOException {
         final HttpServer server = HttpServer.create(new InetSocketAddress(HOSTNAME, PORT), BACKLOG);
 
@@ -55,8 +61,18 @@ public class JsonServer {
                             responseBody = "[]";
                         } else {
                             String word = wordParam.get(0);
-                            String[] wordRhymes = Rhymes.getRhymes(word, quality);
-                            responseBody = "[\"" + String.join("\",\"", wordRhymes) + "\"]";
+                            RhymesResult result = Rhymes.getRhymes(word, quality);
+                            if (result.getData() != null) {
+                                String[] wordRhymes = result.getData();
+                                String array = "";
+                                if (wordRhymes.length > 0) {
+                                    array = "\"" + String.join("\",\"", wordRhymes) + "\"";
+                                }
+                                responseBody = "{ \"data\": [" + array +  "] }";
+                            } else {
+                                String error = errors.get(result.getError());
+                                responseBody = "{ \"error\": \"" + error + "\" }";
+                            }
                         }
 
                         headers.set(HEADER_CONTENT_TYPE, String.format("application/json; charset=%s", CHARSET));

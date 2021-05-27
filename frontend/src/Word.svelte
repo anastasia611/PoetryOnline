@@ -3,11 +3,12 @@
     import { createEventDispatcher, onDestroy, onMount } from 'svelte';
     import { isLetter, isPunctuationMark } from "./common/strings";
     import tabFocus from "./actions/tabFocus";
-    import { convertPixelsToRem, setCaretPosition } from "./common/dom";
+    import { getCaretCharacterOffsetWithin, setCaretPosition } from "./common/dom";
 
     export let word = '';
-    export let editable = false;
+    export let focused = false;
     export let pos = 0;
+    export let chooseStress = false;
     export let chosen = false;
 
     const title = 'Удалить слово';
@@ -15,88 +16,125 @@
 
     let tabFocused = false;
     let wordElement;
-    let hidden;
+    let textBeforeStress;
+    let textAfterStress;
+    let stressSymbol;
 
     let orig = word;
     let destroyed = false;
-    let width = 0;
 
-    $: if (chosen) {
-        console.log(chosen, word)
-    }
+    const setPos = newPos => {
+        if (newPos < 0) {
+            newPos = 0;
+        } else if (newPos > word.length - 1) {
+            newPos = word.length - 1;
+        }
+        pos = newPos;
+    };
 
     const onRemove = () => {
-        console.log('rm word', word)
         dispatch('remove');
     };
 
     const onRemoveBefore = () => {
-        console.log('rm word bef', word)
-        dispatch('remove-before', { word, punct: isPunctuationMark(word) });
+        dispatch('remove-before', {
+            word,
+            punct: isPunctuationMark(word)
+        });
     };
 
     const onRemoveAfter = () => {
-        console.log('rm word aft', word)
         dispatch('remove-after', { word });
     };
 
     const onKeyPress = e => {
-        const pos = e.target.selectionEnd;
+        console.log('keypr')
         word = getWordContent();
 
-        if (!isLetter(e.key) || isPunctuationMark(word)) {
+        if (chosen) {
             e.preventDefault();
-        }
+        } else {
+            pos = getCaretCharacterOffsetWithin(wordElement);
 
-        if (e.key === 'Enter') {
-            dispatch('enter', { word, pos });
-        } else if (isPunctuationMark(e.key)) {
-            dispatch('punct', { word, sign: e.key });
-        } else if (e.key === ' ') {
-            if (word.length === 1) {
-                word = word.replace('-', '—');
+            if (!isLetter(e.key) || isPunctuationMark(word)) {
+                e.preventDefault();
             }
-            dispatch('space', { word, pos });
-        }
 
-        word = getWordContent();
+            if (e.key === 'Enter') {
+                dispatch('enter', { word, pos });
+            } else if (isPunctuationMark(e.key)) {
+                dispatch('punct', { word, sign: e.key });
+            } else if (e.key === ' ') {
+                if (word.length === 1) {
+                    word = word.replace('-', '—');
+                }
+                dispatch('space', { word, pos });
+            }
+
+            word = getWordContent();
+        }
     };
 
     const onKeyDown = (e) => {
-        const pos = e.target.selectionEnd;
+        console.log('keydwn')
         word = getWordContent();
 
-        if (e.key === 'ArrowLeft' && pos === 0) {
-            dispatch('back');
-        } else if (e.key === 'ArrowRight' && pos === word.length) {
-            dispatch('next');
-        } else if (e.key === 'ArrowUp') {
-            dispatch('up');
-        } else if (e.key === 'ArrowDown') {
-            dispatch('down');
-        } else if (e.key === 'Backspace' || e.key === 'Delete') {
-            if (!word.length) {
-                // to prevent deletion of symbol in next word
-                console.log('rm word on press')
+        if (e.key === ' ') {
+            e.preventDefault();
+        }
+
+        if (chosen) {
+            e.preventDefault();
+
+            if (e.key === 'ArrowLeft') {
+                setPos(pos - 1);
+            } else if (e.key === 'ArrowRight') {
+                setPos(pos + 1);
+            }
+        } else {
+            pos = getCaretCharacterOffsetWithin(wordElement);
+
+            if (e.key === ' ') {
+                if (word.length === 1) {
+                    word = word.replace('-', '—');
+                }
+                dispatch('space', { word, pos });
+            } else if (e.key === 'ArrowLeft' && pos === 0) {
                 e.preventDefault();
-                onRemove();
-            } else if (e.key === 'Backspace' && pos === 0) {
+                dispatch('back');
+            } else if (e.key === 'ArrowRight' && pos === word.length) {
                 e.preventDefault();
-                onRemoveBefore();
-            } else if (e.key === 'Delete' && pos === word.length) {
-                e.preventDefault();
-                onRemoveAfter();
+                dispatch('next');
+            } else if (e.key === 'ArrowUp') {
+                dispatch('up');
+            } else if (e.key === 'ArrowDown') {
+                dispatch('down');
+            } else if (e.key === 'Backspace' || e.key === 'Delete') {
+                if (!word.length) {
+                    // to prevent deletion of symbol in next word
+                    e.preventDefault();
+                    onRemove();
+                } else if (e.key === 'Backspace' && pos === 0) {
+                    e.preventDefault();
+                    onRemoveBefore();
+                } else if (e.key === 'Delete' && pos === word.length) {
+                    e.preventDefault();
+                    onRemoveAfter();
+                }
             }
         }
     };
 
     const getWordContent = () => {
-        // return (wordElement.textContent || '').trim();
-        return wordElement.value || '';
+        return wordElement.textContent || '';
+    };
+
+    const onClick = () => {
+        console.log('click')
+        setPos(getCaretCharacterOffsetWithin(wordElement));
     };
 
     const onFocus = () => {
-        console.log('foc', wordElement.value)
         dispatch('focus');
     };
 
@@ -104,50 +142,45 @@
         if (destroyed) {
             return;
         }
-        if (!word) {
-            // console.log('rm in word', orig, dstr)
-            // onRemove();
-        } else {
+        if (word) {
             dispatch('editFinished', { word });
         }
 
         tabFocused = false;
-        console.log('blur', word)
+        // TODO: needed?
         dispatch('blur', { word: getWordContent() });
     };
 
     onDestroy(() => {
         destroyed = true;
         if (wordElement) {
-            wordElement.removeEventListener('keypress', onKeyPress);
-            wordElement.removeEventListener('keydown', onKeyDown);
+            // wordElement.removeEventListener('keypress', onKeyPress);
+            // wordElement.removeEventListener('keydown', onKeyDown);
         }
     });
 
     onMount(async () => {
-        // console.log('mount', word)
-        wordElement.addEventListener('keypress', onKeyPress);
-        wordElement.addEventListener('keydown', onKeyDown);
-        hidden.innerHTML = word;
+        // wordElement.addEventListener('keypress', onKeyPress);
+        // wordElement.addEventListener('keydown', onKeyDown);
     });
 
     const onInput = () => {
-        word = wordElement.value;
-        hidden.innerHTML = wordElement.value;
-        width = convertPixelsToRem(hidden.clientWidth) + 0.25 + 'rem';
+        word = wordElement.textContent;
     };
 
-    $: if (wordElement) {
-        hidden.innerHTML = word;
-        width = convertPixelsToRem(hidden.clientWidth) + 0.25 + 'rem';
+    $: {
+        // TODO: empty word
+        textBeforeStress = word.substr(0, pos);
+        stressSymbol = word[pos];
+        textAfterStress = word.substr(pos + 1);
+        console.log(pos, textBeforeStress, stressSymbol, textAfterStress)
     }
-    $: if (wordElement && editable) {
-        console.log(word, editable)
+    $: if (wordElement && (focused || chosen)) {
         wordElement.focus();
     }
-    $: if (wordElement && pos) {
-        console.log('Cursor',word, pos)
-        setCaretPosition(wordElement, 0);
+    $: if (wordElement) {
+        console.log('Cursor', word, pos)
+        setCaretPosition(wordElement, pos);
     }
 
 </script>
@@ -156,25 +189,33 @@
      class:chosen={chosen}
      on:click={onFocus}>
 
-    <div class="remove">
-        <RemoveButton icon="cross" size="10" {title} changeOpacity on:click={onRemove}/>
-    </div>
+    {#if !chosen}
+        <div class="remove">
+            <RemoveButton icon="cross" size="10" {title} changeOpacity on:click={onRemove}/>
+        </div>
+    {/if}
 
-    <input
-            title={word}
-            class="word-text"
-            value={word}
-            style="width: {width}"
-            on:input={onInput}
-            bind:this={wordElement}
-            class:key-focus-visible={tabFocused}
-            use:tabFocus
-            on:tabfocus={() => tabFocused = true}
-            on:focus={onFocus}
-            on:blur={onBlur}
-    />
-    <div class="hidden"
-         bind:this={hidden}>
+    <div role="textbox"
+         title={word}
+         contenteditable={chooseStress || !chosen}
+         class="word-text"
+         on:input={onInput}
+         bind:this={wordElement}
+         class:key-focus-visible={tabFocused}
+         use:tabFocus
+         on:keypress={onKeyPress}
+         on:keydown={onKeyDown}
+         on:click={onClick}
+         on:tabfocus={() => tabFocused = true}
+         on:focus={onFocus}
+         on:blur={onBlur}
+    >
+        {#if chosen && chooseStress}
+            <!--{word}-->
+            {textBeforeStress}<b>{stressSymbol}</b>{textAfterStress}
+        {:else}
+            {word}
+        {/if}
     </div>
 </div>
 
@@ -212,13 +253,14 @@
     }
 
     .word-text {
+        display: inline;
         color: #500808;
         border: none;
         font-size: var(--size);
         line-height: var(--size);
         min-width: var(--size);
         background: none;
-        padding: 0;
+        padding-right: 0.125rem;
 
         &:focus {
             outline: none;
@@ -228,10 +270,4 @@
             outline: #888888 0.125rem solid;
         }
     }
-
-    .hidden {
-        position: absolute;
-        visibility: hidden;
-    }
-
 </style>

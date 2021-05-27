@@ -15,6 +15,7 @@ export function getCaretCharacterOffsetWithin(element) {
             preCaretRange.selectNodeContents(element);
             preCaretRange.setEnd(range.endContainer, range.endOffset);
             caretOffset = preCaretRange.toString().length;
+            console.log(preCaretRange.toString(), caretOffset);
         }
     } else if ((sel = doc.selection) && sel.type !== "Control") {
         const textRange = sel.createRange();

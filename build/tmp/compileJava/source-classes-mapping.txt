@@ -1,9 +1,11 @@
 youtube/Youtube.java
  youtube.Youtube
+rhymes/RhymesResult.java
+ rhymes.RhymesResult
+rhymes/ErrorCodes.java
+ rhymes.ErrorCodes
 model/SpeechPart.java
  model.SpeechPart
-model/WordEntry.java
- model.WordEntry
 Resource.java
  Resource
 youtube/SubsParser.java
@@ -13,9 +15,12 @@ youtube/ApiExample.java
  youtube.ApiExample
 model/Word.java
  model.Word
+model/WordEntry.java
+ model.WordEntry
 Main.java
  Main
-server/JsonServer.java
- server.JsonServer
 rhymes/Rhymes.java
  rhymes.Rhymes
+server/JsonServer.java
+ server.JsonServer
+ server.JsonServer$1

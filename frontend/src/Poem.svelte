@@ -5,13 +5,14 @@
     import { push, remove } from "./common/arrays";
     import { getRhymes } from "./api/rhymes";
     import { clickOutside } from './actions/clickOutside';
+    import { isPunctuationMark } from "./common/strings";
 
     export let stanzas = [];
 
     export let stanzaIndex = -1;
     export let lineIndex = -1;
     export let wordIndex = -1;
-    let wordPos;
+    let wordPos = 0;
 
     const dispatch = createEventDispatcher();
 
@@ -21,8 +22,10 @@
     const getRhymeTitle = 'Подобрать рифму';
     const chooseTargetTooltip = 'Выберите слово, к которому нужно подобрать рифму';
     const chooseRhymeTooltip = 'Выберите рифму из списка';
+    const chooseStressTooltip = 'Укажите ударение';
     const rhymeConfirm = 'Готово';
     const rhymeReject = 'Закрыть';
+    const noRhymes = 'Не найдено';
 
     let chooseWord = false;
     let targetLineIndex = -1;
@@ -30,6 +33,7 @@
     let chosenWordIndex = -1;
 
     let rhymesGot = false;
+    let chooseStress = false;
     let rhymes;
     let selectedRhyme;
 
@@ -94,6 +98,10 @@
     };
 
     const onRemoveWord = (s, l, w) => {
+        if (chooseWord || rhymesGot) {
+            return;
+        }
+
         setIndexes(s, l, w);
         const words = getLine();
 
@@ -108,6 +116,9 @@
     };
 
     const onRemoveLine = (s, l) => {
+        if (chooseWord || rhymesGot) {
+            return;
+        }
         setIndexes(s, l);
         console.log('rm line', getStanza(), l)
         removeLine();
@@ -176,6 +187,12 @@
         addWord('');
     };
 
+    const onEditFinished = (e, s, l, w) => {
+        const { word } = e.detail;
+        setIndexes(s, l, w);
+        updateWord(word);
+    };
+
     const onNextWord = (s, l, w) => {
         setIndexes(s, l, w);
         const words = getLine();
@@ -231,7 +248,7 @@
         if (l > 0) {
             setLineIndex(--l);
             setWordIndex(getLine().length - 1);
-            console.log('idxs', stanzaIndex, lineIndex, wordIndex)
+            // console.log('idxs', stanzaIndex, lineIndex, wordIndex)
             stanzas = stanzas
         } else {
             onBackStanza(s, l, w);
@@ -275,10 +292,8 @@
 
     const updateWord = (word, w = wordIndex, l = lineIndex, s = stanzaIndex) => {
         if (word) {
-            console.log('add word', getLine(), word, w)
             setWord(word, w, l, s);
         } else {
-            console.log('add empty word - remove', getLine(), w)
             removeWord();
             if (w > 0) {
                 setWordIndex(--w);
@@ -288,6 +303,10 @@
 
     // change args order
     const onAddLine = (s = stanzaIndex, l, newLine) => {
+        if (chooseWord || rhymesGot) {
+            return;
+        }
+
         setIndexes(s, l);
         const line = getLine();
         const isNewEmpty = isLineEmpty(newLine);
@@ -388,13 +407,18 @@
         setIndexes(s, l, w - 1);
     };
 
-    const onGetRhymes = async () => {
+    const onGetRhymes = async (stressPos) => {
         const word = getWord(chosenWordIndex, chosenLineIndex, stanzaIndex);
-        let response = await getRhymes(word);
+        let response = await getRhymes(word, stressPos);
         if (response.data) {
             rhymes = response.data;
             rhymesGot = true;
             chooseWord = false;
+            if (rhymes.length) {
+                selectedRhyme = rhymes[0].toLowerCase();
+            }
+        } else if (response.error === 'Stress needed') {
+            chooseStress = true;
         } else {
             console.log("Ошибка: " + response.status);
         }
@@ -516,7 +540,7 @@
     };
 
     const setIndexes = (s, l, w) => {
-        console.log('idx', s, l, w);
+        // console.log('idx', s, l, w);
         setWordIndex(w);
         setLineIndex(l);
         setStanzaIndex(s);
@@ -545,6 +569,7 @@
     };
 
     const setChosenLineIndex = (l = lineIndex, stanzaLength = getStanza().length) => {
+        // get line to get rhyme to
         if (l > 1) {
             chosenLineIndex = l - 2;
         } else if (l > 0) {
@@ -557,46 +582,82 @@
     };
 
     const setChosenWordIndex = (s = stanzaIndex) => {
-        chosenWordIndex = getLine(chosenLineIndex, s).length - 1;
+        let isPunct = false;
+        let w = getLine(chosenLineIndex, s).length;
+
+        // find word
+        do {
+            const word = getWord(--w, chosenLineIndex, s);
+            isPunct = isPunctuationMark(word);
+
+            // if there's no words in line, go to previous line
+            if (w < 0) {
+                w = 0;
+                // if the first line in stanza skip
+                if (chosenLineIndex === 0) {
+                    return;
+                }
+                chosenLineIndex--;
+            }
+        } while (isPunct && w > 0);
+
+        chosenWordIndex = w;
     };
 
     const onBulbClick = (s, l) => {
-        setIndexes(s, l);
-        chooseWord = !(chooseWord && l === targetLineIndex);
-        targetLineIndex = l;
+        if (!rhymesGot) {
+            setIndexes(s, l);
+            chooseWord = !(chooseWord && l === targetLineIndex);
+            wordPos = 0;
+            targetLineIndex = l;
 
-        // set chosen rhyme line
-        setChosenLineIndex();
-        setChosenWordIndex();
-    };
-
-    const onClickOutsideBulb = (s) => {
-        if (s === stanzaIndex) {
-            chooseWord = false;
+            // set chosen rhyme line
+            setChosenLineIndex();
+            setChosenWordIndex();
         }
     };
 
-    // TODO: trans between stanzas
+    const onClickOutsideStanza = (s) => {
+        if (s === stanzaIndex) {
+            chooseWord = false;
+            wordPos = 0;
+            rhymesGot = false;
+            rhymes = [];
+            console.log('outs');
+            chooseStress = false;
+            selectedRhyme = '';
+        }
+    };
+
     const onConfirmRhymes = () => {
         // TODO: move to states machine-like maybe??
         if (rhymesGot) {
+            console.log('add r', selectedRhyme)
             addWord(selectedRhyme, getLine(targetLineIndex).length - 1, targetLineIndex);
             rhymesGot = false;
             setIndexes(stanzaIndex, targetLineIndex, wordIndex);
+        } else if (chooseStress) {
+            onGetRhymes(wordPos);
         } else {
             onGetRhymes();
         }
+        chooseStress = false;
+        selectedRhyme = '';
     };
 
     const onRejectRhymes = () => {
         if (rhymesGot) {
+            console.log('rej');
             rhymesGot = false;
         } else {
             chooseWord = false;
         }
+        wordPos = 0;
+        chooseStress = false;
+        selectedRhyme = '';
     };
 
-    const isLineChosenForRhymes = (s, l) => {
+    $: isLineChosenForRhymes = (s, l) => {
         return (chooseWord || rhymesGot) && s === stanzaIndex && l === targetLineIndex;
     };
 
@@ -609,16 +670,17 @@
     {#each stanzas as lines, s}
         <div class="stanza"
              use:clickOutside
-             on:clickOutside={() => onClickOutsideBulb(s)}>
+             on:clickOutside={() => onClickOutsideStanza(s)}>
             {#each lines as words, l}
                 <div class="line">
                     <div>
                         {#each words as word, w}
                             <Word
                                     {word}
-                                    pos={wordPos}
+                                    bind:pos={wordPos}
                                     chosen={chooseWord && s === stanzaIndex && l === chosenLineIndex && w === chosenWordIndex}
-                                    editable={s === stanzaIndex && l === lineIndex && w === wordIndex}
+                                    focused={!chooseWord && !rhymesGot && s === stanzaIndex && l === lineIndex && w === wordIndex}
+                                    {chooseStress}
                                     on:focus={() => onFocus(s, l, w)}
                                     on:blur={e => onBlur(e, s, l, w)}
                                     on:remove={() => onRemoveWord(s, l, w)}
@@ -631,13 +693,17 @@
                                     on:next={() => onNextWord(s, l, w)}
                                     on:up={() => onUp(s, l, w)}
                                     on:down={() => onDown(s, l, w)}
-                                    on:editFinished/>
+                                    on:editFinished={e => onEditFinished(e, s, l, w)}/>
                         {/each}
                         {#if rhymesGot && l === targetLineIndex && s === stanzaIndex}
                             <select bind:value={selectedRhyme}>
-                                {#each rhymes as rhyme}
-                                    <option>{rhyme}</option>
-                                {/each}
+                                {#if rhymes.length}
+                                    {#each rhymes as rhyme}
+                                        <option>{rhyme.toLowerCase()}</option>
+                                    {/each}
+                                {:else}
+                                    <option>{noRhymes}</option>
+                                {/if}
                             </select>
                         {/if}
                     </div>
@@ -647,22 +713,28 @@
                             <div class="menu-button" class:active={isLineChosenForRhymes(s, l)}>
                                 <IconButton
                                         icon="bulb" size="18" padding="4"
-                                        changeOpacity title={getRhymeTitle}
+                                        changeOpacity={!isLineChosenForRhymes(s, l)} title={getRhymeTitle}
                                         on:click={() => onBulbClick(s, l)}/>
                             </div>
                         </div>
-                        {#if (chooseWord || rhymesGot) && s === stanzaIndex && l === targetLineIndex}
+                        {#if isLineChosenForRhymes(s, l)}
                             <div class="tooltip">
                                 <div class="tooltip-arrow"></div>
                                 {#if rhymesGot}
                                     {chooseRhymeTooltip}
                                 {:else}
-                                    {chooseTargetTooltip}
+                                    {#if chooseStress}
+                                        {chooseStressTooltip}
+                                    {:else}
+                                        {chooseTargetTooltip}
+                                    {/if}
                                 {/if}
                                 <div class="tooltip-bar">
-                                    <IconButton icon="check" size="10" padding="2" title={rhymeConfirm}
-                                                text={rhymeConfirm} borders
-                                                on:click={onConfirmRhymes}/>
+                                    {#if !rhymesGot || rhymes.length}
+                                        <IconButton icon="check" size="10" padding="2" title={rhymeConfirm}
+                                                    text={rhymeConfirm} borders color="#526933"
+                                                    on:click={onConfirmRhymes}/>
+                                    {/if}
                                     <IconButton icon="cross" size="10" padding="2" title={rhymeReject}
                                                 text={rhymeReject} borders
                                                 on:click={onRejectRhymes}/>
@@ -695,13 +767,13 @@
         min-width: 15rem;
         background-color: var(--color);
         box-shadow: none;
-        padding: 0.5rem;
+        padding: 0.5rem 0.25rem 0.25rem 0.5rem;
         text-align: left;
         font-size: .8em;
         z-index: 2;
         box-sizing: border-box;
         border-radius: 0.25rem;
-        //color: #500808;
+        font-style: italic;
 
         & .tooltip-arrow {
             &::before {

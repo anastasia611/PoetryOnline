@@ -4,8 +4,9 @@
 
     export let icon = '';
     export let title = '';
-    export let text;
+    export let text = '';
     export let size = 8;
+    export let color = '#500808AA';
     export let padding = 2;
     export let borders = false;
     export let changeOpacity = false;
@@ -19,7 +20,7 @@
 
 <button
         on:click
-        style="--size: {size}px; --button-padding: {padding}px"
+        style="--size: {size}px; --button-padding: {padding}px; --color: {color};"
         class:borders={borders}
         class:with-text={text}
         class:change-opacity={changeOpacity}
@@ -32,24 +33,26 @@
         <svelte:component this={Icon} ref="svg" {title} {size}/>
     {/if}
     {#if text}
-        {text}
+        <span class="text">{text}</span>
     {/if}
 </button>
 
 <style lang="scss">
     button {
+        display: flex;
+        align-items: center;
         padding: var(--button-padding);
         line-height: calc(var(--size) + 2 * var(--button-padding));
         border: none;
         background: none;
-        color: #500808;
+        color: var(--color);
 
         &:not(.with-text) {
             height: calc(var(--size) + 2 * var(--button-padding));
         }
 
         :global([ref=svg]) {
-            fill: #500808AA;
+            fill: var(--color);
             position: initial;
             width: var(--size);
             height: var(--size);
@@ -60,15 +63,15 @@
         }
 
         &.borders {
-            border: 1px solid transparent;
+            border: 0.1rem solid transparent;
         }
 
-        &:hover, &:focus {
+        &:hover {
             background: none;
             opacity: 1;
 
             &.borders {
-                border-color: #500808;
+                border-color: var(--color);
             }
         }
 
@@ -80,5 +83,10 @@
                 border-color: transparent;
             }
         }
+    }
+
+    .text {
+        margin-left: 0.25rem;
+        font-weight: 500;
     }
 </style>

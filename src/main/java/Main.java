@@ -13,7 +13,7 @@ public class Main {
     static final int quality = 0;
 
     public static void main(String[] args) {
-        String[] wordRhymes = Rhymes.getRhymes("скрывайся", quality);
+        String[] wordRhymes = Rhymes.getRhymes("скрывайся", quality).getData();
 
         String videoId = /*"voL5_TYPgCU";*/ "P9LG1kTH3nE";
 
@@ -110,7 +110,7 @@ public class Main {
 
         for (String word : words) {
             if (!rhymes.containsKey(word)) {
-                String[] wordRhymes = Rhymes.getRhymes(word, quality);
+                String[] wordRhymes = Rhymes.getRhymes(word, quality).getData();
 
                 for (String rhyme : wordRhymes) {
                     if (words.contains(rhyme)) {

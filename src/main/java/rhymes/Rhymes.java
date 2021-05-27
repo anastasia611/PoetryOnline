@@ -16,10 +16,11 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 
 public class Rhymes {
-    public static String[] getRhymes(String word, int quality) {
+    public static RhymesResult getRhymes(String word, int quality) {
         String[] resultWords = new String[]{};
 
         try {
@@ -28,6 +29,13 @@ public class Rhymes {
             Document doc = Jsoup.parse(html);
             Element result = doc.select("#results").get(0);
             Elements results = result.children();
+
+            Elements errors = doc.select(".error");
+                for (int i = 0; i < errors.size(); i++) {
+                    if (errors.get(i).getElementsContainingText("Уточните ударение").size() > 0) {
+                        return new RhymesResult(ErrorCodes.STRESS_NEEDED);
+                    }
+                }
 
             int i = 0;
             while (i < results.size() && !results.get(i).classNames().contains("pos")) {
@@ -101,12 +109,12 @@ public class Rhymes {
 
             String cleared = txt.toString().replaceAll("\\p{P}", "").trim();
             resultWords = cleared.split("\\s+", -1);
-
+            resultWords = Arrays.stream(resultWords).filter(item -> item != null && !"".equals(item)).toArray(String[]::new);
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
 
-        return resultWords;
+        return new RhymesResult(resultWords);
     }
 
     private static String getRhymesResponse(String word, int quality) {
