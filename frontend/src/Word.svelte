@@ -110,6 +110,7 @@
             } else if (e.key === 'ArrowDown') {
                 dispatch('down');
             } else if (e.key === 'Backspace' || e.key === 'Delete') {
+                console.log('DEL', word, word.length)
                 if (!word.length) {
                     // to prevent deletion of symbol in next word
                     e.preventDefault();
@@ -143,6 +144,11 @@
             return;
         }
         if (word) {
+            if (word.length < 2) {
+                word = word.replace('-', '—');
+                // workaround for - (can be set only after editing finished)
+                wordElement.textContent = word;
+            }
             dispatch('editFinished', { word });
         }
 
@@ -173,13 +179,13 @@
         textBeforeStress = word.substr(0, pos);
         stressSymbol = word[pos];
         textAfterStress = word.substr(pos + 1);
-        console.log(pos, textBeforeStress, stressSymbol, textAfterStress)
+        // console.log(pos, textBeforeStress, stressSymbol, textAfterStress)
     }
     $: if (wordElement && (focused || chosen)) {
         wordElement.focus();
     }
     $: if (wordElement) {
-        console.log('Cursor', word, pos)
+        // console.log('Cursor', word, pos)
         setCaretPosition(wordElement, pos);
     }
 

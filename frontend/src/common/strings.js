@@ -1,6 +1,6 @@
-const punct = /!|"|:|;|—|\?|\.|,/i;
-const letter = /[a-zA-zа-яёА-ЯЁ\-]/i;
-const letters = /[a-zA-zа-яёА-ЯЁ\-]+/i;
+const punct = /!|"|:|;|—|\?|\.|,|—/i;
+const letter = /[a-zA-Zа-яёА-ЯЁ\-]/i;
+const letters = /[a-zA-Zа-яёА-ЯЁ\-]+/i;
 
 // TODO: defis
 export function isLetter(str) {
