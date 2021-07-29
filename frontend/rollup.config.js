@@ -7,6 +7,8 @@ import css from 'rollup-plugin-css-only';
 import preprocess from 'svelte-preprocess';
 import replace from '@rollup/plugin-replace';
 import {config} from 'dotenv';
+import url from 'rollup-plugin-url'
+import copy from "rollup-plugin-copy";
 
 const production = !process.env.ROLLUP_WATCH;
 
@@ -46,6 +48,20 @@ export default {
 				dev: !production
 			},
 			preprocess: preprocess()
+		}),
+
+		copy({
+			targets: [
+				{ src: 'static', dest: 'public' }
+			]
+		}),
+
+		url({
+			// by default, rollup-plugin-url will not handle font files
+			include: ['**/*.woff', '**/*.woff2', '**/*.tff', '**/*.jpg'],
+			// setting infinite limit will ensure that the files
+			// are always bundled with the code, not copied to /dist
+			limit: Infinity,
 		}),
 
 		// we'll extract any component CSS out into

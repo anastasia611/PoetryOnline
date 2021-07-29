@@ -26,6 +26,8 @@
     "svelte-preprocess": "^4.7.0"
   },
   "dependencies": {
-    "node-sass": "^5.0.0"
+    "node-sass": "^5.0.0",
+    "rollup-plugin-copy": "^3.4.0",
+    "rollup-plugin-url": "^3.0.1"
   }
 }
