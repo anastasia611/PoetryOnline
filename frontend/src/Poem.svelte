@@ -589,106 +589,106 @@
 </div>
 
 <style lang="scss">
-    .tooltip {
-        --color: #bc8f8fee;
+  .tooltip {
+    --color: #bc8f8fee;
 
+    position: absolute;
+    transform: translate(0, -100%);
+    top: 0;
+    left: -0.25rem;
+    min-width: 15rem;
+    background-color: var(--color);
+    box-shadow: none;
+    padding: 0.5rem 0.25rem 0.25rem 0.5rem;
+    text-align: left;
+    font-size: .8em;
+    z-index: 2;
+    box-sizing: border-box;
+    border-radius: 0.25rem;
+    font-style: italic;
+
+    & .tooltip-arrow {
+      &::before {
+        border-width: 0.6rem 0.45rem 0 0.45rem;
+        border-left-color: transparent;
+        border-right-color: transparent;
+        border-bottom-color: transparent;
+        top: calc(100%);
+        content: '';
+        display: block;
+        width: 0;
+        height: 0;
+        border-style: solid;
         position: absolute;
-        transform: translate(0, -100%);
-        top: 0;
-        left: -0.25rem;
-        min-width: 15rem;
-        background-color: var(--color);
-        box-shadow: none;
-        padding: 0.5rem 0.25rem 0.25rem 0.5rem;
-        text-align: left;
-        font-size: .8em;
-        z-index: 2;
-        box-sizing: border-box;
-        border-radius: 0.25rem;
-        font-style: italic;
-
-        & .tooltip-arrow {
-            &::before {
-                border-width: 0.6rem 0.45rem 0 0.45rem;
-                border-left-color: transparent;
-                border-right-color: transparent;
-                border-bottom-color: transparent;
-                top: calc(100%);
-                content: '';
-                display: block;
-                width: 0;
-                height: 0;
-                border-style: solid;
-                position: absolute;
-                color: var(--color);
-            }
-        }
-
-        & .tooltip-bar {
-            display: flex;
-            justify-content: space-around;
-            margin-top: 0.25rem;
-        }
+        color: var(--color);
+      }
     }
 
-    .poem {
-        display: flex;
-        width: fit-content;
-        flex-direction: column;
-        margin-left: auto;
-        margin-right: auto;
-        padding: 1rem;
+    & .tooltip-bar {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 0.25rem;
     }
+  }
 
-    .stanza {
-        margin-bottom: 1rem;
-        padding: 0.5rem;
+  .poem {
+    display: flex;
+    width: fit-content;
+    flex-direction: column;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 1rem;
+  }
 
-        &:hover, &:focus-within {
-            background-color: #F5F5F5;
+  .stanza {
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+
+    &:hover, &:focus-within {
+      background-color: #F5F5F5;
+    }
+  }
+
+  .line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.25rem 0.5rem;
+
+    .right-menu {
+      position: relative;
+      display: flex;
+      align-items: center;
+      float: right;
+      margin-left: 1rem;
+
+      & .menu-button {
+        opacity: 0;
+
+        &.active {
+          opacity: 1;
         }
+      }
     }
 
-    .line {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0.25rem 0.5rem;
+    &:hover, &:focus, &:focus-within {
+      background-color: #E5E5E5;
 
-        .right-menu {
-            position: relative;
-            display: flex;
-            align-items: center;
-            float: right;
-            margin-left: 1rem;
-
-            & .menu-button {
-                opacity: 0;
-
-                &.active {
-                    opacity: 1;
-                }
-            }
+      .right-menu {
+        & .menu-button {
+          opacity: 1;
         }
-
-        &:hover, &:focus, &:focus-within {
-            background-color: #E5E5E5;
-
-            .right-menu {
-                & .menu-button {
-                    opacity: 1;
-                }
-            }
-        }
+      }
     }
+  }
 
-    .bulb-container {
-        &:hover + .tooltip {
-            display: block;
-        }
+  .bulb-container {
+    &:hover + .tooltip {
+      display: block;
     }
+  }
 
-    h2 {
-        margin-left: 2.25rem;
-    }
+  h2 {
+    margin-left: 2.25rem;
+  }
 </style>
