@@ -15,7 +15,8 @@
     export let borders = false;
     export let round = false;
     export let fill = false;
-    export let changeOpacity = false;
+    export let opacity = 0.2;
+    export let hoverOpacity = 1;
 
     let Icon;
     let focused = false;
@@ -26,14 +27,13 @@
 
 <button
         on:click
-        style="--width: {width}px; --height: {height}px; --icon-size: {iconSize}px; --button-padding: {padding}px; --color: {color}; --back-color: {backColor};"
+        style="--width: {width}px; --height: {height}px; --opacity: {opacity}; --hover-opacity: {hoverOpacity}; --icon-size: {iconSize}px; --button-padding: {padding}px; --color: {color}; --back-color: {backColor};"
         class:with-width={!!width}
         class:with-height={!!height}
         class:borders={borders}
         class:round={round}
         class:fill={fill}
         class:with-text={text}
-        class:change-opacity={changeOpacity}
         class:key-focus-visible={focused}
         {disabled}
         use:tabFocus
@@ -78,9 +78,7 @@
             height: var(--icon-size);
         }
 
-        &.change-opacity {
-            opacity: 0.2;
-        }
+        opacity: var(--opacity);
 
         &.round {
             border-radius: calc(var(--height) + 2 * var(--button-padding));
@@ -99,7 +97,7 @@
             background: none;
 
           &:not(:disabled) {
-            opacity: 1;
+            opacity: var(--hover-opacity);
           }
           // WAT????
             &.fill {
@@ -110,7 +108,7 @@
         &.key-focus-visible {
           &:not(:disabled) {
             outline: #888888 0.125rem solid;
-            opacity: 1;
+            opacity: var(--hover-opacity);
           }
 
             &.borders {

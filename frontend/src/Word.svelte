@@ -49,7 +49,6 @@
     };
 
     const onKeyPress = e => {
-        console.log('keypr')
         word = getWordContent();
 
         if (chosen) {
@@ -144,7 +143,6 @@
     };
 
     const onClick = () => {
-        console.log('click')
         setPos(getCaretCharacterOffsetWithin(wordElement));
     };
 
@@ -187,8 +185,6 @@
     const onTabFocus = () => {
         if (!chosen) {
             tabFocused = true;
-        } else {
-            console.log('ELSE')
         }
     };
 
@@ -213,42 +209,60 @@
 
 </script>
 
-<div class="word"
-     class:chosen={chosen}
+<div class="word-container"
      on:click={onFocus}>
+    <div class="word"
+         class:chosen={chosen}>
 
-    <!--{#if !chosen}-->
-    <div class="remove">
-        <RemoveButton icon="cross" disabled={!editable} iconSize="10" {title} changeOpacity on:click={onRemove}/>
-    </div>
-    <!--{/if}-->
+        <div class="remove">
+            <RemoveButton icon="cross" disabled={!editable} iconSize="10" {title} on:click={onRemove}/>
+        </div>
 
-    <div role="textbox"
-         tabindex=0
-         title={word}
-         contenteditable={editable}
-         class="word-text"
-         on:input={onInput}
-         bind:this={wordElement}
-         class:key-focus-visible={tabFocused}
-         use:tabFocus
-         on:keypress={onKeyPress}
-         on:keydown={onKeyDown}
-         on:click={onClick}
-         on:tabfocus={onTabFocus}
-         on:focus={onFocus}
-         on:blur={onBlur}
-    >
-        {#if chosen && chooseStress}
-            <!--{word}-->
-            {textBeforeStress}<b>{stressSymbol}</b>{textAfterStress}
-        {:else}
-            {word}
-        {/if}
+        <div role="textbox"
+             tabindex=0
+             title={word}
+             contenteditable={editable}
+             class="word-text"
+             on:input={onInput}
+             bind:this={wordElement}
+             class:key-focus-visible={tabFocused}
+             use:tabFocus
+             on:keypress={onKeyPress}
+             on:keydown={onKeyDown}
+             on:click={onClick}
+             on:tabfocus={onTabFocus}
+             on:focus={onFocus}
+             on:blur={onBlur}
+        >
+            {#if chosen && chooseStress}
+                <!--{word}-->
+                {textBeforeStress}<b>{stressSymbol}</b>{textAfterStress}
+            {:else}
+                {word}
+            {/if}
+        </div>
     </div>
 </div>
 
 <style lang="scss">
+  .word-container {
+    display: flex;
+    align-items: center;
+    //padding: 0.25rem 0.5rem;
+    height: 100%;
+
+    &:hover, &:focus, &:focus-within {
+      & .word {
+        background-color: #D0D0D0;
+        outline: none;
+
+        & .remove {
+          opacity: 1;
+        }
+      }
+    }
+  }
+
   .word {
     --size: 1rem;
 

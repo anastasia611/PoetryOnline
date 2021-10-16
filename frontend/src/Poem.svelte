@@ -7,6 +7,7 @@
     import { clickOutside } from './actions/clickOutside';
     import { isPunctuationMark, isWord } from "./common/strings";
     import { PoemDataStore } from "./data/PoemStore";
+    import Tooltip from "./Tooltip.svelte";
 
     export let stanzas = [];
 
@@ -24,8 +25,7 @@
     const chooseTargetTooltip = 'Выберите слово, к которому нужно подобрать рифму';
     const chooseRhymeTooltip = 'Выберите рифму из списка';
     const chooseStressTooltip = 'Укажите ударение';
-    const rhymeConfirm = 'Готово';
-    const rhymeReject = 'Закрыть';
+    const noRhymesTooltip = 'Рифмы не найдены';
     const noRhymes = 'Не найдено';
 
     let chooseWord = false;
@@ -38,6 +38,7 @@
     let chooseStress = false;
     let rhymes;
     let selectedRhyme;
+    let tooltipText;
 
     const rhymesPreloaded = {};
 
@@ -65,12 +66,9 @@
         if (chooseWord) {
             // if within this stanza update selection
             if (s === targetStanzaIndex) {
-                // TODO: move .length - 1 to store func
                 const wordIndForRhyme = findWordForRhyme(s, l).w;
-                // if (w === wordIndForRhyme) {
-                    chosenLineIndex = l;
-                    chosenWordIndex = wordIndForRhyme;
-                // }
+                chosenLineIndex = l;
+                chosenWordIndex = wordIndForRhyme;
             } else { // else update target line to get rhymes to
                 targetLineIndex = l;
                 findChosenLineIndex(l, store.getStanza(s).length);
@@ -100,8 +98,7 @@
 
     const onRemoveAfterWord = (s, l, w) => {
         store.setIndexes(s, l, w);
-        const stanza = store.getStanza();
-        if (l === stanza.length - 1) {
+        if (store.isLastLineInStanza(l, s)) {
             mergeStanzas(s + 1);
         }
     };
@@ -144,7 +141,7 @@
         //if enter after word
         if (pos === word.length) {
             // if the last word in line insert line after
-            if (w === words.length - 1) {
+            if (store.isLastWordInLine(w, l, s)) {
                 onAddLine(s, l, [ '' ]);
             } else {
                 // insert line, this word in first part
@@ -200,9 +197,8 @@
 
     const onNextWord = (s, l, w, e) => {
         store.setIndexes(s, l, w);
-        const words = store.getLine();
 
-        if (w < words.length - 1) {
+        if (!store.isLastWordInLine(w, l, s)) {
             store.setWordIndex(++w);
         } else {
             onNextLine(s, l, w);
@@ -211,9 +207,8 @@
 
     const onNextLine = (s, l, w) => {
         store.setIndexes(s, l, w);
-        const lines = store.getStanza();
 
-        if (l < lines.length - 1) {
+        if (!store.isLastLineInStanza(l, s)) {
             store.setLineIndex(++l);
             store.setWordIndex(0);
         } else {
@@ -243,7 +238,7 @@
         store.setIndexes(s, l, w);
         if (l > 0) {
             store.setLineIndex(--l);
-            store.setWordIndex(store.getLine().length - 1);
+            store.setWordIndex(store.getLineSize() - 1);
             stanzas = store.getStanzas();
         } else {
             onBackStanza(s, l, w);
@@ -254,12 +249,8 @@
         store.setIndexes(s, l, w);
         if (s > 0) {
             store.setStanzaIndex(--s);
-            const stanza = store.getStanza();
-
-            store.setLineIndex(stanza.length - 1);
-            const line = store.getLine();
-
-            store.setWordIndex(line.length - 1);
+            store.setLineIndex(store.getStanzaSize() - 1);
+            store.setWordIndex(store.getLineSize() - 1);
         }
     };
 
@@ -441,7 +432,7 @@
         let w = store.getLine(chosenLineIndex, s).length;
         let l = chosenLineIndex;
 
-       const lw = findWordForRhyme(s, l, w);
+        const lw = findWordForRhyme(s, l, w);
 
         chosenLineIndex = lw.l;
         chosenWordIndex = lw.w;
@@ -453,7 +444,7 @@
         if (!w) {
             w = store.getLine(l, s).length;
         }
-console.log('find', s, l, w)
+
         // find word
         do {
             const word = store.getWord(--w, l, s);
@@ -484,7 +475,7 @@ console.log('find', s, l, w)
     };
 
     const onChooseAfter = (s, l, w) => {
-        if (l < store.getStanza(s).length - 1) {
+        if (!store.isLastLineInStanza(l, s)) {
             onNextLine(s, l, w);
             chosenLineIndex = lineIndex;
             findChosenWordIndex();
@@ -507,21 +498,18 @@ console.log('find', s, l, w)
 
     const onClickOutsideStanza = (s) => {
         if (s === targetStanzaIndex) {
-            console.log('skip', s, targetStanzaIndex)
-            chooseWord = false;
-            wordPos = 0;
-            rhymesGot = false;
-            rhymes = [];
-            chooseStress = false;
-            selectedRhyme = '';
-            targetStanzaIndex = -1;
+            resetChoice();
         }
     };
+
+    const onLineClick = (s, l) => {
+
+    }
 
     const onConfirmRhymes = () => {
         // TODO: move to states machine-like maybe??
         if (rhymesGot) {
-            store.addWord(selectedRhyme, store.getLine(targetLineIndex).length - 1, targetLineIndex);
+            store.addWord(selectedRhyme, store.getLineSize(targetLineIndex) - 1, targetLineIndex);
             rhymesGot = false;
             store.setIndexes(stanzaIndex, targetLineIndex, wordIndex);
         } else if (chooseStress) {
@@ -544,14 +532,45 @@ console.log('find', s, l, w)
         selectedRhyme = '';
     };
 
+    const onKeyDown = (e) => {
+        if (e.key === 'Escape') {
+            resetChoice();
+        }
+    };
+
+    const resetChoice = () => {
+        chooseWord = false;
+        wordPos = 0;
+        rhymesGot = false;
+        rhymes = [];
+        chooseStress = false;
+        selectedRhyme = '';
+        targetStanzaIndex = -1;
+    };
+
     $: isLineChosenForRhymes = (s, l) => {
-        console.log('chosen for', chooseWord, rhymesGot, s, targetStanzaIndex, l, targetLineIndex)
         return (chooseWord || rhymesGot) && s === targetStanzaIndex && l === targetLineIndex;
     };
 
     $: isWordChosenForRhymes = (s, l, w) => {
         return chooseWord && s === targetStanzaIndex && l === chosenLineIndex && w === chosenWordIndex;
     };
+
+    $: {
+        if (rhymesGot) {
+            if (rhymes.length) {
+                tooltipText = chooseRhymeTooltip;
+            } else {
+                tooltipText = noRhymesTooltip;
+            }
+        } else {
+            if (chooseStress) {
+                tooltipText = chooseStressTooltip;
+            } else {
+                tooltipText = chooseTargetTooltip;
+            }
+        }
+    }
 
 </script>
 
@@ -562,10 +581,11 @@ console.log('find', s, l, w)
     {#each stanzas as lines, s}
         <div class="stanza"
              use:clickOutside
-             on:clickOutside={() => onClickOutsideStanza(s)}>
+             on:clickOutside={() => onClickOutsideStanza(s)}
+             on:keydown={onKeyDown}>
             {#each lines as words, l}
-                <div class="line">
-                    <div>
+                <div class="line" on:click={onLineClick}>
+                    <div class="words">
                         {#each words as word, w}
                             <Word
                                     {word}
@@ -609,46 +629,24 @@ console.log('find', s, l, w)
                             <div class="menu-button" class:active={isLineChosenForRhymes(s, l)}>
                                 <IconButton
                                         icon="bulb" iconSize="18" padding="4"
-                                        changeOpacity={!isLineChosenForRhymes(s, l)} title={getRhymeTitle}
+                                        opacity={isLineChosenForRhymes(s, l) ? 1: 0.2} opacity-hover={1}
+                                        title={getRhymeTitle}
                                         on:click={() => onBulbClick(s, l)}/>
                             </div>
                         </div>
-                        {#if isLineChosenForRhymes(s, l)}
-                            <div class="tooltip">
-                                <div class="tooltip-arrow"></div>
-                                {#if rhymesGot}
-                                    {chooseRhymeTooltip}
-                                {:else}
-                                    {#if chooseStress}
-                                        {chooseStressTooltip}
-                                    {:else}
-                                        {chooseTargetTooltip}
-                                    {/if}
-                                {/if}
-                                <div class="tooltip-bar">
-                                    {#if !rhymesGot || rhymes.length}
-                                        <div class="tooltip-button left">
-                                            <IconButton icon="check" height="30" width="30" padding="6"
-                                                        title={rhymeConfirm}
-                                                         round fill color="white" backColor="#4fd173"
-                                                        on:click={onConfirmRhymes}/>
-                                        </div>
-                                    {/if}
-                                    <div class="tooltip-button">
-                                        <IconButton icon="cross" height="30" width="30" padding="6" title={rhymeReject}
-                                                     borders round
-                                                    on:click={onRejectRhymes}/>
-                                    </div>
-                                </div>
-                            </div>
-                        {/if}
+                        <Tooltip
+                                open={isLineChosenForRhymes(s, l)}
+                                text={tooltipText}
+                                showConfirm={!rhymesGot || rhymes.length}
+                                onReject={onRejectRhymes}
+                                onConfirm={onConfirmRhymes} />
                         <div class="menu-button">
                             <IconButton icon="cross" iconSize="18" padding="4" title={removeLineTitle}
-                                        changeOpacity on:click={() => onRemoveLine(s, l)}/>
+                                        on:click={() => onRemoveLine(s, l)}/>
                         </div>
                         <div class="menu-button">
                             <IconButton icon="plus" iconSize="18" padding="4" title={addLineTitle}
-                                        changeOpacity on:click={() => onAddLine(s, l)}/>
+                                        on:click={() => onAddLine(s, l)}/>
                         </div>
                     </div>
                 </div>
@@ -658,57 +656,10 @@ console.log('find', s, l, w)
 </div>
 
 <style lang="scss">
-  .tooltip {
-    --color: #ffffff;
-
-    position: absolute;
-    transform: translate(0, -100%);
-    top: 0;
-    left: -0.25rem;
-    min-width: 15rem;
-    background-color: var(--color);
-    padding: 0.75rem 0.25rem 0.25rem 0.75rem;
-    box-shadow: 0 4px 6px 0 #b7b1ac;
-    text-align: left;
-    font-size: .8em;
-    z-index: 2;
-    box-sizing: border-box;
-    border-radius: 0.25rem;
-
-    & .tooltip-arrow {
-      &::before {
-        border-width: 0.6rem 0.45rem 0 0.45rem;
-        border-left-color: transparent;
-        border-right-color: transparent;
-        border-bottom-color: transparent;
-        top: calc(100%);
-        content: '';
-        display: block;
-        width: 0;
-        height: 0;
-        border-style: solid;
-        position: absolute;
-        color: var(--color);
-      }
-    }
-
-    & .tooltip-bar {
-      display: flex;
-      justify-content: center;
-      margin-top: 0.75rem;
-      margin-bottom: 0.3rem;
-    }
-
-    & .tooltip-button {
-      &.left {
-        margin-right: 1rem;
-      }
-    }
-  }
-
   .poem {
     display: flex;
     width: fit-content;
+    width: -moz-max-content;
     flex-direction: column;
     margin-left: auto;
     margin-right: auto;
@@ -728,8 +679,14 @@ console.log('find', s, l, w)
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.25rem 0.5rem;
-    height: 1.5rem;
+    height: 2rem;
+
+    & .words {
+      display: flex;
+      align-items: center;
+      padding: 0 0.5rem;
+      height: 100%;
+    }
 
     .right-menu {
       position: relative;

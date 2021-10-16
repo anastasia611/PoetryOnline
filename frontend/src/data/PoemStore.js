@@ -52,12 +52,18 @@ export class PoemDataStore {
         return this.stanzas.length;
     };
 
+    getStanzas() {
+        return this.stanzas;
+    };
+
     getStanza(s = this.stanzaIndex) {
         return this.stanzas[s];
     };
 
-    getStanzas() {
-        return this.stanzas;
+    getStanzaSize(s = this.stanzaIndex) {
+        if (this.getStanza(s)) {
+            return this.getStanza(s).length;
+        }
     };
 
     setStanza(lines, s = this.stanzaIndex) {
@@ -98,6 +104,12 @@ export class PoemDataStore {
         const stanza = this.getStanza(s);
         if (stanza) {
             return stanza[l];
+        }
+    };
+
+    getLineSize(l = this.lineIndex, s = this.stanzaIndex) {
+        if (this.getLine(l, s)) {
+            return this.getLine(l, s).length;
         }
     };
 
@@ -201,6 +213,18 @@ export class PoemDataStore {
         }
     };
 
+    isLastWordInLine(w, l, s) {
+        if (this.getLine(l, s)) {
+            return w === this.getLine(l, s).length - 1;
+        }
+    }
+
+    isLastLineInStanza(l, s) {
+        if (this.getStanza(s)) {
+            return l === this.getStanza(s).length - 1;
+        }
+    }
+
     isBeginPoem() {
         return this.wordIndex === 0 && this.lineIndex === 0 && this.stanzaIndex === 0;
     };
@@ -211,22 +235,4 @@ export class PoemDataStore {
 
         return this.wordIndex === line.length - 1 && this.lineIndex === stanza.length - 1 && this.stanzaIndex === this.stanzas.length - 1;
     };
-
-    // on:blur={e => onBlur(e, s, l, w)}
-    // const onBlur = (e, s, l, w) => {
-    // const word = e.detail.word;
-    // if (!word) {
-    //     console.log('rm in word')
-    //     this.removeWord(w, l, s);
-    // }
-    // const stanza = this.getStanza(s);
-    // const line = this.getLine(s, l);
-    //
-    // if (!line || !line.length || !this.getWord(0, l, s)) {
-    //     this.removeLine();
-    // }
-    // if (!stanza || !stanza.length || !this.getLine(0, s)) {
-    //     removeStanza();
-    // }
-    // };
 }
