@@ -1,5 +1,6 @@
 import App from './Main.svelte';
 import {parseWords} from "./common/strings";
+import { getComments } from "../stuff/vk";
 
 const stanzas = [
     [
@@ -40,5 +41,17 @@ const app = new App({
         stanzas
     }
 });
+
+const groups = {
+    lentach: 29534144,
+    'mash.moyka': 179189462,
+    science: 29559271
+};
+
+// getComments(
+//     [],
+//     20,
+//     0,
+//     300);
 
 export default app;

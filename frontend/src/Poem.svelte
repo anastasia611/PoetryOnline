@@ -1,10 +1,11 @@
 <script>
+    // TODO: on click line - create new word
     import { createEventDispatcher } from 'svelte';
     import IconButton from "./IconButton.svelte";
     import Word from "./Word.svelte";
     import { getRhymes } from "./api/rhymes";
     import { clickOutside } from './actions/clickOutside';
-    import { isPunctuationMark } from "./common/strings";
+    import { isPunctuationMark, isWord } from "./common/strings";
     import { PoemDataStore } from "./data/PoemStore";
 
     export let stanzas = [];
@@ -29,6 +30,7 @@
 
     let chooseWord = false;
     let targetLineIndex = -1;
+    let targetStanzaIndex = -1;
     let chosenLineIndex = -1;
     let chosenWordIndex = -1;
 
@@ -36,6 +38,8 @@
     let chooseStress = false;
     let rhymes;
     let selectedRhyme;
+
+    const rhymesPreloaded = {};
 
     //TODO: set correct word pos
 
@@ -60,13 +64,17 @@
     const onFocus = (s, l, w) => {
         if (chooseWord) {
             // if within this stanza update selection
-            if (s === stanzaIndex) {
-                chosenLineIndex = l;
-                chosenWordIndex = w;
+            if (s === targetStanzaIndex) {
+                // TODO: move .length - 1 to store func
+                const wordIndForRhyme = findWordForRhyme(s, l).w;
+                // if (w === wordIndForRhyme) {
+                    chosenLineIndex = l;
+                    chosenWordIndex = wordIndForRhyme;
+                // }
             } else { // else update target line to get rhymes to
                 targetLineIndex = l;
-                setChosenLineIndex(l, store.getStanza(s).length);
-                setChosenWordIndex(s);
+                findChosenLineIndex(l, store.getStanza(s).length);
+                findChosenWordIndex(s);
             }
         }
         store.setIndexes(s, l, w);
@@ -190,7 +198,7 @@
         updateWord(word);
     };
 
-    const onNextWord = (s, l, w) => {
+    const onNextWord = (s, l, w, e) => {
         store.setIndexes(s, l, w);
         const words = store.getLine();
 
@@ -404,7 +412,7 @@
         }
     };
 
-    const setChosenLineIndex = (l = lineIndex, stanzaLength = store.getStanza().length) => {
+    const findChosenLineIndex = (l = lineIndex, stanzaLength = store.getStanza().length) => {
         // get line to get rhyme to
         if (l > 1) {
             chosenLineIndex = l - 2;
@@ -415,29 +423,72 @@
         } else if (l < stanzaLength - 1) {
             chosenLineIndex = l + 1;
         }
+        // TODO: finish odd logic
+        // // for even lines
+        // if (l % 2 === 0) {
+        //     // if there are previous lines, go 2 lines upper
+        //     if (l > 1) {
+        //         chosenLineIndex = l - 2;
+        //     } else if (stanzaLength === 1) { // if the first line and only 2 lines, go to the second
+        //         chosenLineIndex = l - 1;
+        //     } else {} // if the first line and only 1 line, nothing to do
+        // } else {  // for odd lines
+        //
+        // }
     };
 
-    const setChosenWordIndex = (s = stanzaIndex) => {
-        let isPunct = false;
+    const findChosenWordIndex = (s = stanzaIndex) => {
         let w = store.getLine(chosenLineIndex, s).length;
+        let l = chosenLineIndex;
 
+       const lw = findWordForRhyme(s, l, w);
+
+        chosenLineIndex = lw.l;
+        chosenWordIndex = lw.w;
+    };
+
+    const findWordForRhyme = (s, l, w) => {
+        let isPunct = false;
+
+        if (!w) {
+            w = store.getLine(l, s).length;
+        }
+console.log('find', s, l, w)
         // find word
         do {
-            const word = store.getWord(--w, chosenLineIndex, s);
+            const word = store.getWord(--w, l, s);
             isPunct = isPunctuationMark(word);
 
             // if there's no words in line, go to previous line
             if (w < 0) {
                 w = 0;
                 // if the first line in stanza skip
-                if (chosenLineIndex === 0) {
+                if (l === 0) {
                     return;
                 }
-                chosenLineIndex--;
+                l--;
             }
         } while (isPunct && w > 0);
 
-        chosenWordIndex = w;
+        return {
+            w, l
+        };
+    };
+
+    const onChooseBefore = (s, l, w) => {
+        if (l > 0) {
+            onBackLine(s, l, w);
+            chosenLineIndex = lineIndex;
+            findChosenWordIndex();
+        }
+    };
+
+    const onChooseAfter = (s, l, w) => {
+        if (l < store.getStanza(s).length - 1) {
+            onNextLine(s, l, w);
+            chosenLineIndex = lineIndex;
+            findChosenWordIndex();
+        }
     };
 
     const onBulbClick = (s, l) => {
@@ -445,22 +496,25 @@
             store.setIndexes(s, l);
             chooseWord = !(chooseWord && l === targetLineIndex);
             wordPos = 0;
+            targetStanzaIndex = s;
             targetLineIndex = l;
 
             // set chosen rhyme line
-            setChosenLineIndex();
-            setChosenWordIndex();
+            findChosenLineIndex();
+            findChosenWordIndex();
         }
     };
 
     const onClickOutsideStanza = (s) => {
-        if (s === stanzaIndex) {
+        if (s === targetStanzaIndex) {
+            console.log('skip', s, targetStanzaIndex)
             chooseWord = false;
             wordPos = 0;
             rhymesGot = false;
             rhymes = [];
             chooseStress = false;
             selectedRhyme = '';
+            targetStanzaIndex = -1;
         }
     };
 
@@ -491,7 +545,12 @@
     };
 
     $: isLineChosenForRhymes = (s, l) => {
-        return (chooseWord || rhymesGot) && s === stanzaIndex && l === targetLineIndex;
+        console.log('chosen for', chooseWord, rhymesGot, s, targetStanzaIndex, l, targetLineIndex)
+        return (chooseWord || rhymesGot) && s === targetStanzaIndex && l === targetLineIndex;
+    };
+
+    $: isWordChosenForRhymes = (s, l, w) => {
+        return chooseWord && s === targetStanzaIndex && l === chosenLineIndex && w === chosenWordIndex;
     };
 
 </script>
@@ -511,8 +570,9 @@
                             <Word
                                     {word}
                                     bind:pos={wordPos}
-                                    chosen={chooseWord && s === stanzaIndex && l === chosenLineIndex && w === chosenWordIndex}
+                                    chosen={isWordChosenForRhymes(s, l, w)}
                                     focused={!chooseWord && !rhymesGot && s === stanzaIndex && l === lineIndex && w === wordIndex}
+                                    editable={!chooseWord && (chooseStress || !isWordChosenForRhymes(s, l, w))}
                                     {chooseStress}
                                     on:focus={() => onFocus(s, l, w)}
                                     on:remove={() => onRemoveWord(s, l, w)}
@@ -521,10 +581,14 @@
                                     on:enter={e => onEnter(e, s, l, w)}
                                     on:space={e => onSpace(e, s, l, w)}
                                     on:punct={e => onPunct(e, s, l, w)}
-                                    on:back={() => onBackWord(s, l, w)}
-                                    on:next={() => onNextWord(s, l, w)}
-                                    on:up={() => onUp(s, l, w)}
-                                    on:down={() => onDown(s, l, w)}
+                                    on:back={e => onBackWord(s, l, w, e)}
+                                    on:next={e => onNextWord(s, l, w, e)}
+                                    on:up={e => onUp(s, l, w, e)}
+                                    on:down={e => onDown(s, l, w, e)}
+                                    on:choose-back={() => onChooseBefore(s, l, w)}
+                                    on:choose-next={() => onChooseAfter(s, l, w)}
+                                    on:choose-up={() => onChooseBefore(s, l, w)}
+                                    on:choose-down={() => onChooseAfter(s, l, w)}
                                     on:editFinished={e => onEditFinished(e, s, l, w)}/>
                         {/each}
                         {#if rhymesGot && l === targetLineIndex && s === stanzaIndex}
@@ -544,7 +608,7 @@
                         <div class="bulb-container">
                             <div class="menu-button" class:active={isLineChosenForRhymes(s, l)}>
                                 <IconButton
-                                        icon="bulb" size="18" padding="4"
+                                        icon="bulb" iconSize="18" padding="4"
                                         changeOpacity={!isLineChosenForRhymes(s, l)} title={getRhymeTitle}
                                         on:click={() => onBulbClick(s, l)}/>
                             </div>
@@ -563,22 +627,27 @@
                                 {/if}
                                 <div class="tooltip-bar">
                                     {#if !rhymesGot || rhymes.length}
-                                        <IconButton icon="check" size="10" padding="2" title={rhymeConfirm}
-                                                    text={rhymeConfirm} borders color="#526933"
-                                                    on:click={onConfirmRhymes}/>
+                                        <div class="tooltip-button left">
+                                            <IconButton icon="check" height="30" width="30" padding="6"
+                                                        title={rhymeConfirm}
+                                                         round fill color="white" backColor="#4fd173"
+                                                        on:click={onConfirmRhymes}/>
+                                        </div>
                                     {/if}
-                                    <IconButton icon="cross" size="10" padding="2" title={rhymeReject}
-                                                text={rhymeReject} borders
-                                                on:click={onRejectRhymes}/>
+                                    <div class="tooltip-button">
+                                        <IconButton icon="cross" height="30" width="30" padding="6" title={rhymeReject}
+                                                     borders round
+                                                    on:click={onRejectRhymes}/>
+                                    </div>
                                 </div>
                             </div>
                         {/if}
                         <div class="menu-button">
-                            <IconButton icon="cross" size="18" padding="4" title={removeLineTitle}
+                            <IconButton icon="cross" iconSize="18" padding="4" title={removeLineTitle}
                                         changeOpacity on:click={() => onRemoveLine(s, l)}/>
                         </div>
                         <div class="menu-button">
-                            <IconButton icon="plus" size="18" padding="4" title={addLineTitle}
+                            <IconButton icon="plus" iconSize="18" padding="4" title={addLineTitle}
                                         changeOpacity on:click={() => onAddLine(s, l)}/>
                         </div>
                     </div>
@@ -590,7 +659,7 @@
 
 <style lang="scss">
   .tooltip {
-    --color: #bc8f8fee;
+    --color: #ffffff;
 
     position: absolute;
     transform: translate(0, -100%);
@@ -598,14 +667,13 @@
     left: -0.25rem;
     min-width: 15rem;
     background-color: var(--color);
-    box-shadow: none;
-    padding: 0.5rem 0.25rem 0.25rem 0.5rem;
+    padding: 0.75rem 0.25rem 0.25rem 0.75rem;
+    box-shadow: 0 4px 6px 0 #b7b1ac;
     text-align: left;
     font-size: .8em;
     z-index: 2;
     box-sizing: border-box;
     border-radius: 0.25rem;
-    font-style: italic;
 
     & .tooltip-arrow {
       &::before {
@@ -626,8 +694,15 @@
 
     & .tooltip-bar {
       display: flex;
-      justify-content: space-around;
-      margin-top: 0.25rem;
+      justify-content: center;
+      margin-top: 0.75rem;
+      margin-bottom: 0.3rem;
+    }
+
+    & .tooltip-button {
+      &.left {
+        margin-right: 1rem;
+      }
     }
   }
 
@@ -654,6 +729,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.25rem 0.5rem;
+    height: 1.5rem;
 
     .right-menu {
       position: relative;

@@ -10,6 +10,7 @@
     export let pos = 0;
     export let chooseStress = false;
     export let chosen = false;
+    export let editable = false;
 
     const title = 'Удалить слово';
     const dispatch = createEventDispatcher();
@@ -76,20 +77,32 @@
     };
 
     const onKeyDown = (e) => {
-        console.log('keydwn')
         word = getWordContent();
 
         if (e.key === ' ') {
             e.preventDefault();
         }
 
-        if (chosen) {
+        if (chooseStress) {
             e.preventDefault();
+            console.log('keydwn', e.key, pos, word.length)
 
             if (e.key === 'ArrowLeft') {
                 setPos(pos - 1);
             } else if (e.key === 'ArrowRight') {
                 setPos(pos + 1);
+            }
+        } else if (chosen) {
+            e.preventDefault();
+
+            if (e.key === 'ArrowLeft') {
+                dispatch('choose-back');
+            } else if (e.key === 'ArrowRight') {
+                dispatch('choose-next');
+            } else if (e.key === 'ArrowUp') {
+                dispatch('choose-back');
+            } else if (e.key === 'ArrowDown') {
+                dispatch('choose-next');
             }
         } else {
             pos = getCaretCharacterOffsetWithin(wordElement);
@@ -153,6 +166,7 @@
         }
 
         tabFocused = false;
+        focused = false;
         // TODO: needed?
         dispatch('blur', { word: getWordContent() });
     };
@@ -169,6 +183,14 @@
         // wordElement.addEventListener('keypress', onKeyPress);
         // wordElement.addEventListener('keydown', onKeyDown);
     });
+
+    const onTabFocus = () => {
+        if (!chosen) {
+            tabFocused = true;
+        } else {
+            console.log('ELSE')
+        }
+    };
 
     const onInput = () => {
         word = wordElement.textContent;
@@ -195,15 +217,16 @@
      class:chosen={chosen}
      on:click={onFocus}>
 
-    {#if !chosen}
-        <div class="remove">
-            <RemoveButton icon="cross" size="10" {title} changeOpacity on:click={onRemove}/>
-        </div>
-    {/if}
+    <!--{#if !chosen}-->
+    <div class="remove">
+        <RemoveButton icon="cross" disabled={!editable} iconSize="10" {title} changeOpacity on:click={onRemove}/>
+    </div>
+    <!--{/if}-->
 
     <div role="textbox"
+         tabindex=0
          title={word}
-         contenteditable={chooseStress || !chosen}
+         contenteditable={editable}
          class="word-text"
          on:input={onInput}
          bind:this={wordElement}
@@ -212,7 +235,7 @@
          on:keypress={onKeyPress}
          on:keydown={onKeyDown}
          on:click={onClick}
-         on:tabfocus={() => tabFocused = true}
+         on:tabfocus={onTabFocus}
          on:focus={onFocus}
          on:blur={onBlur}
     >
@@ -226,54 +249,55 @@
 </div>
 
 <style lang="scss">
-    .word {
-        --size: 1rem;
+  .word {
+    --size: 1rem;
 
-        display: inline-flex;
-        padding: 0.2rem 0.125rem;
-        line-height: var(--size);
-        color: #222;
-        cursor: default;
-        border-radius: 0.125rem;
-        background-clip: padding-box;
-        user-select: none;
+    display: inline-flex;
+    padding: 0.2rem 0.125rem;
+    line-height: var(--size);
+    color: #222;
+    cursor: default;
+    border-radius: 0.125rem;
+    background-clip: padding-box;
+    user-select: none;
 
-        & .remove {
-            display: flex;
-            opacity: 0;
-            margin-right: 0.125rem;
-        }
-
-        &:hover, &:focus, &:focus-within {
-            background-color: #D0D0D0;
-            outline: none;
-
-            & .remove {
-                opacity: 1;
-            }
-        }
-
-        &.chosen {
-            border: #500808AA solid 0.125rem;
-        }
+    & .remove {
+      display: flex;
+      opacity: 0;
+      margin-right: 0.125rem;
     }
 
-    .word-text {
-        display: inline;
-        color: #500808;
-        border: none;
-        font-size: var(--size);
-        line-height: var(--size);
-        min-width: var(--size);
-        background: none;
-        padding-right: 0.125rem;
+    &:hover, &:focus, &:focus-within {
+      background-color: #D0D0D0;
+      outline: none;
 
-        &:focus {
-            outline: none;
-        }
-
-        &.key-focus-visible {
-            outline: #888888 0.125rem solid;
-        }
+      & .remove {
+        opacity: 1;
+      }
     }
+
+    &.chosen {
+      box-shadow: 0 0 0.25rem 0.25rem #500808AA;
+      //outline: #500808AA 0.125rem solid;
+    }
+  }
+
+  .word-text {
+    display: inline;
+    color: #500808;
+    border: none;
+    font-size: var(--size);
+    line-height: var(--size);
+    min-width: var(--size);
+    background: none;
+    padding-right: 0.125rem;
+
+    &:focus {
+      outline: none;
+    }
+
+    &.key-focus-visible {
+      outline: #888888 0.125rem solid;
+    }
+  }
 </style>

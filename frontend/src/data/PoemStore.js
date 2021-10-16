@@ -56,6 +56,10 @@ export class PoemDataStore {
         return this.stanzas[s];
     };
 
+    getStanzas() {
+        return this.stanzas;
+    };
+
     setStanza(lines, s = this.stanzaIndex) {
         this.stanzas[s] = lines;
         this.stanzasStore.set(this.stanzas);
@@ -195,6 +199,17 @@ export class PoemDataStore {
         if (typeof s !== 'undefined') {
             this.stanzaIndexStore.set(s);
         }
+    };
+
+    isBeginPoem() {
+        return this.wordIndex === 0 && this.lineIndex === 0 && this.stanzaIndex === 0;
+    };
+
+    isEndPoem() {
+        const stanza = this.stanzas[this.stanzaIndex];
+        const line = stanza[this.lineIndex];
+
+        return this.wordIndex === line.length - 1 && this.lineIndex === stanza.length - 1 && this.stanzaIndex === this.stanzas.length - 1;
     };
 
     // on:blur={e => onBlur(e, s, l, w)}
