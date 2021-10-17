@@ -1,14 +1,24 @@
 <script>
+    import { createEventDispatcher } from 'svelte';
     import IconButton from "./IconButton.svelte";
-
-    const confirmTitle = 'Готово';
-    const rejectTitle = 'Закрыть';
 
     export let open = false;
     export let text = false;
     export let showConfirm = true;
-    export let onConfirm;
-    export let onReject;
+
+    const confirmTitle = 'Готово';
+    const rejectTitle = 'Закрыть';
+
+    const dispatch = createEventDispatcher();
+
+    const onConfirm = () => {
+        dispatch('confirm');
+    };
+
+    const onReject = () => {
+        dispatch('reject');
+    };
+
 </script>
 
 {#if open}

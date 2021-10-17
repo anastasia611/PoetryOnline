@@ -15,7 +15,7 @@ export function getCaretCharacterOffsetWithin(element) {
             preCaretRange.selectNodeContents(element);
             preCaretRange.setEnd(range.endContainer, range.endOffset);
             caretOffset = preCaretRange.toString().length;
-            console.log(preCaretRange.toString(), caretOffset);
+            // console.log(preCaretRange.toString(), caretOffset);
         }
     } else if ((sel = doc.selection) && sel.type !== "Control") {
         const textRange = sel.createRange();
@@ -28,20 +28,15 @@ export function getCaretCharacterOffsetWithin(element) {
     return caretOffset;
 }
 
-export function setCaretPosition(ctrl, pos) {
-    // Modern browsers
-    if (ctrl.setSelectionRange) {
-        ctrl.focus();
-        ctrl.setSelectionRange(pos, pos);
+export function setCaretPosition(el, pos) {
+    const range = document.createRange()
+    const sel = window.getSelection()
 
-        // IE8 and below
-    } else if (ctrl.createTextRange) {
-        var range = ctrl.createTextRange();
-        range.collapse(true);
-        range.moveEnd('character', pos);
-        range.moveStart('character', pos);
-        range.select();
-    }
+    range.setStart(el.firstChild, pos)
+    range.collapse(true)
+
+    sel.removeAllRanges()
+    sel.addRange(range)
 }
 
 export function convertPixelsToRem(px) {

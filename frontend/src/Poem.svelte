@@ -1,11 +1,10 @@
 <script>
     // TODO: on click line - create new word
-    import { createEventDispatcher } from 'svelte';
     import IconButton from "./IconButton.svelte";
     import Word from "./Word.svelte";
     import { getRhymes } from "./api/rhymes";
     import { clickOutside } from './actions/clickOutside';
-    import { isPunctuationMark, isWord } from "./common/strings";
+    import { isPunctuationMark } from "./common/strings";
     import { PoemDataStore } from "./data/PoemStore";
     import Tooltip from "./Tooltip.svelte";
 
@@ -16,9 +15,7 @@
     export let wordIndex = -1;
     let wordPos = 0;
 
-    const dispatch = createEventDispatcher();
-
-    const title = 'Стихотворение';
+    const title = 'Silentium';
     const addLineTitle = 'Добавить строку';
     const removeLineTitle = 'Удалить строку';
     const getRhymeTitle = 'Подобрать рифму';
@@ -39,6 +36,7 @@
     let rhymes;
     let selectedRhyme;
     let tooltipText;
+    let rhymesListElem;
 
     const rhymesPreloaded = {};
 
@@ -59,6 +57,8 @@
     });
 
     store.subscribeWordIndex(value => {
+        console.log(value)
+        // console.trace()
         wordIndex = value;
     });
 
@@ -134,7 +134,6 @@
     const onEnter = (e, s, l, w) => {
         store.setIndexes(s, l, w);
 
-        const words = store.getLine();
         const { word, pos } = e.detail;
         store.setWord(word, w, l, s);
 
@@ -163,7 +162,6 @@
 
     const onSpace = (e, s, l, w) => {
         store.setIndexes(s, l, w);
-        const words = store.getLine();
         const { word, pos } = e.detail;
         updateWord(word);
 
@@ -197,23 +195,23 @@
 
     const onNextWord = (s, l, w, e) => {
         store.setIndexes(s, l, w);
-
         if (!store.isLastWordInLine(w, l, s)) {
             store.setWordIndex(++w);
         } else {
             onNextLine(s, l, w);
         }
+        wordPos = 0;
     };
 
     const onNextLine = (s, l, w) => {
         store.setIndexes(s, l, w);
-
         if (!store.isLastLineInStanza(l, s)) {
             store.setLineIndex(++l);
             store.setWordIndex(0);
         } else {
             onNextStanza(s, l, w);
         }
+        wordPos = 0;
     };
 
     const onNextStanza = (s, l, w) => {
@@ -222,6 +220,7 @@
             store.setStanzaIndex(++s);
             store.setLineIndex(0);
             store.setWordIndex(0);
+            wordPos = 0;
         }
     };
 
@@ -232,6 +231,7 @@
         } else {
             onBackLine(s, l, w);
         }
+        wordPos = store.getWord().length;
     };
 
     const onBackLine = (s, l, w) => {
@@ -239,6 +239,7 @@
         if (l > 0) {
             store.setLineIndex(--l);
             store.setWordIndex(store.getLineSize() - 1);
+            wordPos = store.getWord().length;
             stanzas = store.getStanzas();
         } else {
             onBackStanza(s, l, w);
@@ -251,6 +252,7 @@
             store.setStanzaIndex(--s);
             store.setLineIndex(store.getStanzaSize() - 1);
             store.setWordIndex(store.getLineSize() - 1);
+            wordPos = store.getWord().length;
         }
     };
 
@@ -374,6 +376,8 @@
         store.addWord(word2, w + 1, l, s);
         store.removeWord(w);
         store.setIndexes(s, l, w + 1);
+        console.log(word1, word2, s, l, w + 1)
+        wordPos = word2.length;
     };
 
     const mergeWords = (s, l, w) => {
@@ -397,6 +401,7 @@
                 selectedRhyme = rhymes[0].toLowerCase();
             }
         } else if (response.error === 'Stress needed') {
+            chooseWord = false;
             chooseStress = true;
         } else {
             console.log("Ошибка: " + response.status);
@@ -483,7 +488,7 @@
     };
 
     const onBulbClick = (s, l) => {
-        if (!rhymesGot) {
+        if (!rhymesGot && store.getLastWord(l, s)) {
             store.setIndexes(s, l);
             chooseWord = !(chooseWord && l === targetLineIndex);
             wordPos = 0;
@@ -503,15 +508,26 @@
     };
 
     const onLineClick = (s, l) => {
-
+        if (chooseWord) {
+            const wordIndForRhyme = findWordForRhyme(s, l).w;
+            chosenLineIndex = l;
+            chosenWordIndex = wordIndForRhyme;
+        }
+        if (!isChoosing()) {
+            console.log('clk line')
+            store.setStanzaIndex(s);
+            store.setLineIndex(l);
+            store.setWordIndex(store.getLineSize(l) - 1);
+        }
     }
 
     const onConfirmRhymes = () => {
         // TODO: move to states machine-like maybe??
+        console.log('confirm poem', rhymesGot)
         if (rhymesGot) {
             store.addWord(selectedRhyme, store.getLineSize(targetLineIndex) - 1, targetLineIndex);
-            rhymesGot = false;
-            store.setIndexes(stanzaIndex, targetLineIndex, wordIndex);
+            store.setIndexes(stanzaIndex, targetLineIndex, -1);
+            resetChoice();
         } else if (chooseStress) {
             onGetRhymes(wordPos);
         } else {
@@ -522,20 +538,7 @@
     };
 
     const onRejectRhymes = () => {
-        if (rhymesGot) {
-            rhymesGot = false;
-        } else {
-            chooseWord = false;
-        }
-        wordPos = 0;
-        chooseStress = false;
-        selectedRhyme = '';
-    };
-
-    const onKeyDown = (e) => {
-        if (e.key === 'Escape') {
-            resetChoice();
-        }
+        resetChoice();
     };
 
     const resetChoice = () => {
@@ -549,11 +552,11 @@
     };
 
     $: isLineChosenForRhymes = (s, l) => {
-        return (chooseWord || rhymesGot) && s === targetStanzaIndex && l === targetLineIndex;
+        return isChoosing() && s === targetStanzaIndex && l === targetLineIndex;
     };
 
     $: isWordChosenForRhymes = (s, l, w) => {
-        return chooseWord && s === targetStanzaIndex && l === chosenLineIndex && w === chosenWordIndex;
+        return (chooseWord || chooseStress) && s === targetStanzaIndex && l === chosenLineIndex && w === chosenWordIndex;
     };
 
     $: {
@@ -572,6 +575,23 @@
         }
     }
 
+    const onKeyDown = (e) => {
+        if (isChoosing()) {
+            if (e.key === 'Escape') {
+                onRejectRhymes();
+            } else  if (e.key === 'Enter') {
+                onConfirmRhymes();
+            }
+        }
+    };
+
+    const isChoosing = () => {
+        return chooseWord || rhymesGot || chooseStress;
+    };
+
+    $: if (rhymesListElem) {
+        rhymesListElem.focus();
+    }
 </script>
 
 <div class="poem">
@@ -584,15 +604,15 @@
              on:clickOutside={() => onClickOutsideStanza(s)}
              on:keydown={onKeyDown}>
             {#each lines as words, l}
-                <div class="line" on:click={onLineClick}>
+                <div class="line" on:click|preventDefault={() => onLineClick(s, l)}>
                     <div class="words">
                         {#each words as word, w}
                             <Word
                                     {word}
                                     bind:pos={wordPos}
                                     chosen={isWordChosenForRhymes(s, l, w)}
-                                    focused={!chooseWord && !rhymesGot && s === stanzaIndex && l === lineIndex && w === wordIndex}
-                                    editable={!chooseWord && (chooseStress || !isWordChosenForRhymes(s, l, w))}
+                                    focused={!isChoosing() && s === stanzaIndex && l === lineIndex && w === wordIndex}
+                                    editable={!(isChoosing()) && (!isWordChosenForRhymes(s, l, w))}
                                     {chooseStress}
                                     on:focus={() => onFocus(s, l, w)}
                                     on:remove={() => onRemoveWord(s, l, w)}
@@ -609,10 +629,10 @@
                                     on:choose-next={() => onChooseAfter(s, l, w)}
                                     on:choose-up={() => onChooseBefore(s, l, w)}
                                     on:choose-down={() => onChooseAfter(s, l, w)}
-                                    on:editFinished={e => onEditFinished(e, s, l, w)}/>
+                                    on:edit-finished={e => onEditFinished(e, s, l, w)}/>
                         {/each}
                         {#if rhymesGot && l === targetLineIndex && s === stanzaIndex}
-                            <select bind:value={selectedRhyme}>
+                            <select bind:value={selectedRhyme} bind:this={rhymesListElem}>
                                 {#if rhymes.length}
                                     {#each rhymes as rhyme}
                                         <option>{rhyme.toLowerCase()}</option>
@@ -623,13 +643,12 @@
                             </select>
                         {/if}
                     </div>
-
                     <div class="right-menu">
                         <div class="bulb-container">
                             <div class="menu-button" class:active={isLineChosenForRhymes(s, l)}>
                                 <IconButton
                                         icon="bulb" iconSize="18" padding="4"
-                                        opacity={isLineChosenForRhymes(s, l) ? 1: 0.2} opacity-hover={1}
+                                        opacity={isLineChosenForRhymes(s, l) ? 1: 0.2}
                                         title={getRhymeTitle}
                                         on:click={() => onBulbClick(s, l)}/>
                             </div>
@@ -638,8 +657,8 @@
                                 open={isLineChosenForRhymes(s, l)}
                                 text={tooltipText}
                                 showConfirm={!rhymesGot || rhymes.length}
-                                onReject={onRejectRhymes}
-                                onConfirm={onConfirmRhymes} />
+                                on:reject={onRejectRhymes}
+                                on:confirm={onConfirmRhymes} />
                         <div class="menu-button">
                             <IconButton icon="cross" iconSize="18" padding="4" title={removeLineTitle}
                                         on:click={() => onRemoveLine(s, l)}/>

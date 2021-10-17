@@ -1,6 +1,6 @@
 <script>
     import RemoveButton from "./IconButton.svelte";
-    import { createEventDispatcher, onDestroy, onMount } from 'svelte';
+    import { createEventDispatcher, onDestroy } from 'svelte';
     import { isLetter, isPunctuationMark } from "./common/strings";
     import tabFocus from "./actions/tabFocus";
     import { getCaretCharacterOffsetWithin, setCaretPosition } from "./common/dom";
@@ -17,18 +17,20 @@
 
     let tabFocused = false;
     let wordElement;
-    let textBeforeStress;
-    let textAfterStress;
-    let stressSymbol;
 
     let orig = word;
     let destroyed = false;
 
-    const setPos = newPos => {
+    $: chosenPos = pos;
+
+    const setPos = (newPos, allowAfter = true) => {
         if (newPos < 0) {
             newPos = 0;
-        } else if (newPos > word.length - 1) {
-            newPos = word.length - 1;
+        } else {
+            const maxVal = allowAfter ?  word.length : word.length - 1;
+            if (newPos > maxVal) {
+                newPos = maxVal;
+            }
         }
         pos = newPos;
     };
@@ -49,12 +51,14 @@
     };
 
     const onKeyPress = e => {
+        const old = word
         word = getWordContent();
+        console.log('content', old, word)
 
         if (chosen) {
             e.preventDefault();
         } else {
-            pos = getCaretCharacterOffsetWithin(wordElement);
+            setPos(getCaretCharacterOffsetWithin(wordElement));
 
             if (!isLetter(e.key) || isPunctuationMark(word)) {
                 e.preventDefault();
@@ -71,12 +75,14 @@
                 dispatch('space', { word, pos });
             }
 
-            word = getWordContent();
+            // word = getWordContent();
         }
     };
 
     const onKeyDown = (e) => {
+        const old = word
         word = getWordContent();
+        console.log('content', old, word)
 
         if (e.key === ' ') {
             e.preventDefault();
@@ -84,12 +90,11 @@
 
         if (chooseStress) {
             e.preventDefault();
-            console.log('keydwn', e.key, pos, word.length)
 
             if (e.key === 'ArrowLeft') {
-                setPos(pos - 1);
+                setPos(pos - 1, false);
             } else if (e.key === 'ArrowRight') {
-                setPos(pos + 1);
+                setPos(pos + 1, false);
             }
         } else if (chosen) {
             e.preventDefault();
@@ -103,11 +108,12 @@
             } else if (e.key === 'ArrowDown') {
                 dispatch('choose-next');
             }
-        } else {
-            pos = getCaretCharacterOffsetWithin(wordElement);
-
+        } else if (focused) {
+            setPos(getCaretCharacterOffsetWithin(wordElement));
+console.log(word, pos, e.key)
             if (e.key === ' ') {
                 if (word.length === 1) {
+                    console.log('content repl', old, word)
                     word = word.replace('-', '—');
                 }
                 dispatch('space', { word, pos });
@@ -139,11 +145,17 @@
     };
 
     const getWordContent = () => {
+        if (chooseStress || chosen) {
+            return word;
+        }
         return wordElement.textContent || '';
     };
 
     const onClick = () => {
-        setPos(getCaretCharacterOffsetWithin(wordElement));
+        if (!chooseStress) {
+            console.log('on click', getCaretCharacterOffsetWithin(wordElement))
+            setPos(getCaretCharacterOffsetWithin(wordElement));
+        }
     };
 
     const onFocus = () => {
@@ -156,11 +168,13 @@
         }
         if (word) {
             if (word.length < 2) {
+                console.log('content blur', word)
                 word = word.replace('-', '—');
                 // workaround for - (can be set only after editing finished)
+                // TODO: CAUSES BUG!!
                 wordElement.textContent = word;
             }
-            dispatch('editFinished', { word });
+            dispatch('edit-finished', { word });
         }
 
         tabFocused = false;
@@ -177,40 +191,35 @@
         }
     });
 
-    onMount(async () => {
-        // wordElement.addEventListener('keypress', onKeyPress);
-        // wordElement.addEventListener('keydown', onKeyDown);
-    });
-
     const onTabFocus = () => {
-        if (!chosen) {
+        if (!chosen && !chooseStress) {
             tabFocused = true;
         }
     };
 
     const onInput = () => {
+        console.log('input', word, wordElement.textContent)
         word = wordElement.textContent;
     };
 
-    $: {
-        // TODO: empty word
-        textBeforeStress = word.substr(0, pos);
-        stressSymbol = word[pos];
-        textAfterStress = word.substr(pos + 1);
-        // console.log(pos, textBeforeStress, stressSymbol, textAfterStress)
-    }
+    const onClickLetter = (p) => {
+        setPos(p, false);
+    };
+
+    // TODO: empty word
     $: if (wordElement && (focused || chosen)) {
+        console.log('focus', word, pos)
         wordElement.focus();
     }
-    $: if (wordElement) {
-        // console.log('Cursor', word, pos)
-        setCaretPosition(wordElement, pos);
+    $: if (wordElement && focused) {
+        console.log('set car pos', word, pos)
+        // setCaretPosition(wordElement, pos);
     }
 
 </script>
 
 <div class="word-container"
-     on:click={onFocus}>
+     on:click|stopPropagation={onFocus}>
     <div class="word"
          class:chosen={chosen}>
 
@@ -235,8 +244,15 @@
              on:blur={onBlur}
         >
             {#if chosen && chooseStress}
-                <!--{word}-->
-                {textBeforeStress}<b>{stressSymbol}</b>{textAfterStress}
+                {#each word as letter, i}
+                    {#if i === chosenPos}
+                        <b>{letter}</b>
+                    {:else}
+                        <span class="letter" on:click={() => onClickLetter(i)}>
+                            {letter}
+                        </span>
+                    {/if}
+                {/each}
             {:else}
                 {word}
             {/if}
@@ -313,5 +329,10 @@
     &.key-focus-visible {
       outline: #888888 0.125rem solid;
     }
+  }
+
+  .letter {
+    display: inline-block;
+    width: fit-content;
   }
 </style>

@@ -7,8 +7,8 @@
     export let text = '';
     export let disabled = false;
     export let iconSize = 8;
-    export let width;
-    export let height;
+    export let width = 'auto';
+    export let height = 'auto';
     export let color = '#500808AA';
     export let backColor = '#FFFFFFFF';
     export let padding = 2;
@@ -26,10 +26,10 @@
 </script>
 
 <button
-        on:click
+        on:click|stopPropagation
         style="--width: {width}px; --height: {height}px; --opacity: {opacity}; --hover-opacity: {hoverOpacity}; --icon-size: {iconSize}px; --button-padding: {padding}px; --color: {color}; --back-color: {backColor};"
-        class:with-width={!!width}
-        class:with-height={!!height}
+        class:with-width={width !== 'auto'}
+        class:with-height={height !== 'auto'}
         class:borders={borders}
         class:round={round}
         class:fill={fill}
@@ -41,7 +41,7 @@
         on:tabfocus={() => focused = true}
         on:blur={() => focused = false}>
     {#if Icon}
-        <svelte:component this={Icon} ref="svg" {title} size={height}/>
+        <svelte:component this={Icon} ref="svg" {title} size={height === 'auto' ? 8: height}/>
     {/if}
     {#if text}
         <span class="text">{text}</span>
