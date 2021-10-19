@@ -135,9 +135,14 @@
         store.removeLine();
         if (!store.getStanza().length) {
             store.removeStanza();
+            if (s > 0) {
+                store.setStanzaIndex(--s);
+                store.setLineIndex(store.getStanza().length - 1);
+            }
         }
         store.setWordIndex(store.getLine().length - 1);
         wordPos = store.getWord().length;
+        console.log(stanzaIndex, lineIndex, wordIndex)
     };
 
     const onEnter = (e, s, l, w) => {
