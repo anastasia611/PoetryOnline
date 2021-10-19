@@ -29,14 +29,16 @@ export function getCaretCharacterOffsetWithin(element) {
 }
 
 export function setCaretPosition(el, pos) {
-    const range = document.createRange()
-    const sel = window.getSelection()
+    const range = document.createRange();
+    const sel = window.getSelection();
 
-    range.setStart(el.firstChild, pos)
-    range.collapse(true)
+    if (el.firstChild) {
+        range.setStart(el.firstChild, pos);
+        range.collapse(true);
 
-    sel.removeAllRanges()
-    sel.addRange(range)
+        sel.removeAllRanges();
+        sel.addRange(range);
+    }
 }
 
 export function convertPixelsToRem(px) {

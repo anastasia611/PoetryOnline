@@ -10,6 +10,10 @@ export function isLetter(str) {
         .match(letter);
 }
 
+export function isHyphen(str) {
+    return str === '-' || str === '—';
+}
+
 export function isWord(str) {
     if (!str) return false;
     return str.match(letters);

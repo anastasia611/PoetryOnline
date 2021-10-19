@@ -130,7 +130,7 @@ export class PoemDataStore {
     removeLine(l = this.lineIndex, s = this.stanzaIndex) {
         const stanza = this.getStanza(s);
         if (stanza) {
-            console.log('rm ln', s, l, this.getStanza(s));
+            // console.log('rm ln', s, l, this.getStanza(s));
             remove(this.getStanza(s), l);
             this.stanzasStore.set(this.stanzas)
             this.setStanza((this.getStanza())); // hack
@@ -169,6 +169,7 @@ export class PoemDataStore {
 
     setWord(word, w = this.wordIndex, l = this.lineIndex, s = this.stanzaIndex) {
         const line = this.getLine(l, s);
+        word = adjustHyphen(word);
         if (line) {
             line[w] = word;
         }
@@ -176,6 +177,7 @@ export class PoemDataStore {
 
     addWord(word, w = this.wordIndex, l = this.lineIndex, s = this.stanzaIndex) {
         this.setWordIndex(++w);
+        word = adjustHyphen(word);
         this.setLine(push(this.getLine(l, s), w, word), l, s);
         this.stanzasStore.set(this.stanzas);
     };
@@ -235,4 +237,11 @@ export class PoemDataStore {
 
         return this.wordIndex === line.length - 1 && this.lineIndex === stanza.length - 1 && this.stanzaIndex === this.stanzas.length - 1;
     };
+}
+
+function adjustHyphen(word) {
+    if (word.length === 1) {
+        return  word.replace('-', '—');
+    }
+    return word.replace('—', '-');
 }

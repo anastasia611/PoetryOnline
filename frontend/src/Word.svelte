@@ -1,6 +1,6 @@
 <script>
     import RemoveButton from "./IconButton.svelte";
-    import { createEventDispatcher, onDestroy } from 'svelte';
+    import { createEventDispatcher, afterUpdate } from 'svelte';
     import { isLetter, isPunctuationMark } from "./common/strings";
     import tabFocus from "./actions/tabFocus";
     import { getCaretCharacterOffsetWithin, setCaretPosition } from "./common/dom";
@@ -19,15 +19,16 @@
     let wordElement;
 
     let orig = word;
-    let destroyed = false;
 
     $: chosenPos = pos;
 
     const setPos = (newPos, allowAfter = true) => {
+        console.trace()
+        console.log('setcp', pos, newPos, word)
         if (newPos < 0) {
             newPos = 0;
         } else {
-            const maxVal = allowAfter ?  word.length : word.length - 1;
+            const maxVal = allowAfter ? word.length : word.length - 1;
             if (newPos > maxVal) {
                 newPos = maxVal;
             }
@@ -53,12 +54,12 @@
     const onKeyPress = e => {
         const old = word
         word = getWordContent();
-        console.log('content', old, word)
+        console.log('key press', old, word, getCaretCharacterOffsetWithin(wordElement))
 
         if (chosen) {
             e.preventDefault();
         } else {
-            setPos(getCaretCharacterOffsetWithin(wordElement));
+            setPos(getCaretCharacterOffsetWithin(wordElement) + 1);
 
             if (!isLetter(e.key) || isPunctuationMark(word)) {
                 e.preventDefault();
@@ -74,15 +75,13 @@
                 }
                 dispatch('space', { word, pos });
             }
-
-            // word = getWordContent();
         }
     };
 
     const onKeyDown = (e) => {
         const old = word
         word = getWordContent();
-        console.log('content', old, word)
+        console.log('key down', old, word, focused)
 
         if (e.key === ' ') {
             e.preventDefault();
@@ -110,7 +109,7 @@
             }
         } else if (focused) {
             setPos(getCaretCharacterOffsetWithin(wordElement));
-console.log(word, pos, e.key)
+
             if (e.key === ' ') {
                 if (word.length === 1) {
                     console.log('content repl', old, word)
@@ -124,19 +123,24 @@ console.log(word, pos, e.key)
                 e.preventDefault();
                 dispatch('next');
             } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
                 dispatch('up');
             } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
                 dispatch('down');
             } else if (e.key === 'Backspace' || e.key === 'Delete') {
                 console.log('DEL', word, word.length)
                 if (!word.length) {
                     // to prevent deletion of symbol in next word
+                    console.log('DEL empty')
                     e.preventDefault();
                     onRemove();
                 } else if (e.key === 'Backspace' && pos === 0) {
+                    console.log('DEL before', word)
                     e.preventDefault();
                     onRemoveBefore();
                 } else if (e.key === 'Delete' && pos === word.length) {
+                    console.log('DEL after', word)
                     e.preventDefault();
                     onRemoveAfter();
                 }
@@ -153,43 +157,24 @@ console.log(word, pos, e.key)
 
     const onClick = () => {
         if (!chooseStress) {
-            console.log('on click', getCaretCharacterOffsetWithin(wordElement))
             setPos(getCaretCharacterOffsetWithin(wordElement));
         }
     };
 
     const onFocus = () => {
         dispatch('focus');
+        focused = true;
     };
 
     const onBlur = () => {
-        if (destroyed) {
-            return;
-        }
-        if (word) {
-            if (word.length < 2) {
-                console.log('content blur', word)
-                word = word.replace('-', '—');
-                // workaround for - (can be set only after editing finished)
-                // TODO: CAUSES BUG!!
-                wordElement.textContent = word;
-            }
-            dispatch('edit-finished', { word });
-        }
+        dispatch('edit-finished', { word });
 
+        wordElement.textContent = word;
         tabFocused = false;
         focused = false;
         // TODO: needed?
         dispatch('blur', { word: getWordContent() });
     };
-
-    onDestroy(() => {
-        destroyed = true;
-        if (wordElement) {
-            // wordElement.removeEventListener('keypress', onKeyPress);
-            // wordElement.removeEventListener('keydown', onKeyDown);
-        }
-    });
 
     const onTabFocus = () => {
         if (!chosen && !chooseStress) {
@@ -198,23 +183,38 @@ console.log(word, pos, e.key)
     };
 
     const onInput = () => {
-        console.log('input', word, wordElement.textContent)
+        console.log('input', word, wordElement.textContent, wordElement.textContent.length, pos)
         word = wordElement.textContent;
+        // if (pos > 0) {
+        //     setPos(pos - 1);
+        // }
     };
 
     const onClickLetter = (p) => {
         setPos(p, false);
     };
 
-    // TODO: empty word
-    $: if (wordElement && (focused || chosen)) {
-        console.log('focus', word, pos)
+    $: if (focused && wordElement) {
+        console.log('focused', word)
         wordElement.focus();
     }
-    $: if (wordElement && focused) {
-        console.log('set car pos', word, pos)
-        // setCaretPosition(wordElement, pos);
-    }
+
+    afterUpdate(() => {
+        if (editable && wordElement) {
+            const old = wordElement.textContent
+            wordElement.textContent = word;
+
+            if (focused) {
+                wordElement.focus();
+                const currPos = getCaretCharacterOffsetWithin(wordElement);
+                console.log('set car pos', old, word, pos, currPos, wordElement.textContent)
+                if (pos <= word.length && currPos !== pos) {
+                    console.log('set12')
+                    setCaretPosition(wordElement, pos);
+                }
+            }
+        }
+    });
 
 </script>
 
