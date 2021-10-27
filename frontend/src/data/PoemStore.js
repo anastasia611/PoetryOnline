@@ -9,15 +9,15 @@ export class PoemDataStore {
      * @param stanzas Array<Stanza>
      */
     constructor(stanzas) {
-        this.stanzasStore = writable(stanzas);
-        this.stanzaIndexStore = writable(0);
-        this.lineIndexStore = writable(0);
-        this.wordIndexStore = writable(0);
-
         this.stanzas = stanzas;
         this.stanzaIndex = -1;
         this.lineIndex = -1;
         this.wordIndex = -1;
+
+        this.stanzasStore = writable(stanzas);
+        this.stanzaIndexStore = writable(this.stanzaIndex);
+        this.lineIndexStore = writable(this.lineIndex);
+        this.wordIndexStore = writable(this.wordIndex);
     }
 
     subscribeStanzaIndex(callback) {
@@ -148,6 +148,7 @@ export class PoemDataStore {
 
     getWord(w = this.wordIndex, l = this.lineIndex, s = this.stanzaIndex) {
         const line = this.getLine(l, s);
+        w = w > this.getLineSize() - 1 ? this.getLineSize() - 1 : w;
         if (line) {
             return line[w];
         }
@@ -195,6 +196,12 @@ export class PoemDataStore {
         this.setWordIndex(w);
         this.setLineIndex(l);
         this.setStanzaIndex(s);
+    };
+
+    resetIndexes() {
+        this.setWordIndex(-1);
+        this.setLineIndex(-1);
+        this.setStanzaIndex(-1);
     };
 
     setWordIndex(w) {

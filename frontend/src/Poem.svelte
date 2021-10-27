@@ -15,7 +15,7 @@
     export let wordIndex = -1;
     let wordPos = 0;
 
-    const title = 'Silentium';
+    const titlePlaceholder = 'Введите название';
     const addLineTitle = 'Добавить строку';
     const removeLineTitle = 'Удалить строку';
     const getRhymeTitle = 'Подобрать рифму';
@@ -25,6 +25,8 @@
     const noRhymesTooltip = 'Рифмы не найдены';
     const noRhymes = 'Не найдено';
 
+    let title = 'Silentium';
+    let titleInput;
     let chooseWord = false;
     let targetLineIndex = -1;
     let targetStanzaIndex = -1;
@@ -33,14 +35,13 @@
 
     let rhymesGot = false;
     let chooseStress = false;
+    let loadingRhymes = false;
     let rhymes;
     let selectedRhyme;
     let tooltipText;
     let rhymesListElem;
 
     const rhymesPreloaded = {};
-
-    //TODO: set correct word pos
 
     const store = new PoemDataStore(stanzas);
 
@@ -110,7 +111,7 @@
     };
 
     const onRemoveWord = (s, l, w) => {
-        if (chooseWord || rhymesGot) {
+        if (chooseWord || rhymesGot || loadingRhymes) {
             return;
         }
 
@@ -128,7 +129,7 @@
     }
 
     const onRemoveLine = (s, l) => {
-        if (chooseWord || rhymesGot) {
+        if (chooseWord || rhymesGot || loadingRhymes) {
             return;
         }
         store.setIndexes(s, l);
@@ -146,6 +147,7 @@
     };
 
     const onEnter = (e, s, l, w) => {
+        wordPos = 0;
         store.setIndexes(s, l, w);
 
         const { word, pos } = e.detail;
@@ -175,6 +177,7 @@
     };
 
     const onSpace = (e, s, l, w) => {
+        wordPos = 0;
         store.setIndexes(s, l, w);
         const { word, pos } = e.detail;
         updateWord(word);
@@ -193,6 +196,7 @@
         }
     };
 
+    // TODO: split word
     const onPunct = (e, s, l, w) => {
         store.setIndexes(s, l, w);
         const word = e.detail.word;
@@ -205,7 +209,6 @@
         const { word } = e.detail;
         console.log('EDIT', word, store.getWord(w, l, s))
         if (!word) {
-            console.log('remove w', word, store.getWord(w, l, s))
             onRemoveWord(s, l, w);
         } else if (store.getWord(w, l, s) && word !== store.getWord(w, l, s)) {
             store.setIndexes(s, l, w);
@@ -214,6 +217,7 @@
     };
 
     const onNextWord = (s, l, w) => {
+        console.log('NEXT', store.getWord(w, l, s))
         store.setIndexes(s, l, w);
         if (!store.isLastWordInLine(w, l, s)) {
             store.setWordIndex(++w);
@@ -227,7 +231,7 @@
         store.setIndexes(s, l, w);
         if (!store.isLastLineInStanza(l, s)) {
             store.setLineIndex(++l);
-            store.setWordIndex(0);
+            setWordIndexInLine(w);
         } else {
             onNextStanza(s, l, w);
         }
@@ -239,7 +243,7 @@
         if (s < store.getSize() - 1) {
             store.setStanzaIndex(++s);
             store.setLineIndex(0);
-            store.setWordIndex(0);
+            setWordIndexInLine(w);
             wordPos = 0;
         }
     };
@@ -252,15 +256,21 @@
         } else {
             onBackLine(s, l, w);
         }
+        console.log('BACK')
         wordPos = store.getWord().length;
     };
 
+    const setWordIndexInLine = (w) => {
+        const maxWordInd = store.getLineSize() - 1;
+        store.setWordIndex(w > maxWordInd ? maxWordInd : w);
+    };
+
     const onBackLine = (s, l, w) => {
+        console.log('BACK l')
         store.setIndexes(s, l, w);
         if (l > 0) {
             store.setLineIndex(--l);
-            store.setWordIndex(store.getLineSize() - 1);
-            wordPos = store.getWord().length;
+            setWordIndexInLine(w);
             stanzas = store.getStanzas();
         } else {
             onBackStanza(s, l, w);
@@ -269,17 +279,18 @@
     };
 
     const onBackStanza = (s, l, w) => {
+        console.log('BACK s')
         store.setIndexes(s, l, w);
         if (s > 0) {
             store.setStanzaIndex(--s);
             store.setLineIndex(store.getStanzaSize() - 1);
-            store.setWordIndex(store.getLineSize() - 1);
-            wordPos = store.getWord().length;
+            setWordIndexInLine(w);
         }
         wordPos = store.getWord().length;
     };
 
     // TODO: debounce
+    // TODO: set correct index in next line
     const onUp = (s, l, w) => {
         store.setIndexes(s, l, w);
         onBackLine(s, l, w);
@@ -312,7 +323,7 @@
 
     // change args order
     const onAddLine = (s = stanzaIndex, l, newLine) => {
-        if (chooseWord || rhymesGot) {
+        if (chooseWord || rhymesGot || loadingRhymes) {
             return;
         }
 
@@ -400,6 +411,9 @@
     };
 
     const splitWord = (s, l, w, pos) => {
+        wordPos = 0;
+        console.log('split 0', s, l, w, store.getWord())
+
         const word = store.getWord(w, l, s);
         const word1 = word.slice(0, pos);
         const word2 = word.slice(pos, word.length ? word.length : 1);
@@ -407,16 +421,24 @@
         store.addWord(word2, w + 1, l, s);
         store.removeWord(w);
         store.setIndexes(s, l, w + 1);
-        wordPos = 0;
     };
 
     const mergeWords = (s, l, w) => {
         const word1 = store.getWord(w - 1, l, s);
         const word2 = store.getWord(w, l, s);
 
-        if (isPunctuationMark(word2) && (!isHyphen(word2) || isPunctuationMark(word1))) {
-            return;
-        }
+        // const isPunct1 = isPunctuationMark(word1);
+        // const isPunct2 = isPunctuationMark(word2);
+        // const isHyphen1 = isHyphen(word1);
+        // const isHyphen2 = isHyphen(word2);
+        //
+        // // optimize? p2 && (h2 || p1) || p1 && (h1 || p2)
+        // if (isPunct2 && (!isHyphen2 || isPunct1)) {
+        //     return;
+        // }
+        // if (isPunct1 && (!isHyphen1 || isPunct2)) {
+        //     return;
+        // }
 
         const word = word1.concat(word2);
         store.addWord(word, w, l, s);
@@ -424,24 +446,31 @@
         store.removeWord(w - 1, l, s);
         store.setIndexes(s, l, w - 1);
 
+        console.log('merge')
+
         wordPos = word1.length;
     };
 
     const onGetRhymes = async (stressPos) => {
+        loadingRhymes = true;
         const word = store.getWord(chosenWordIndex, chosenLineIndex, stanzaIndex);
         let response = await getRhymes(word, stressPos);
         if (response.data) {
             rhymes = response.data;
             rhymesGot = true;
+            loadingRhymes = false;
             chooseWord = false;
             if (rhymes.length) {
                 selectedRhyme = rhymes[0].toLowerCase();
             }
         } else if (response.error === 'Stress needed') {
+            loadingRhymes = false;
             chooseWord = false;
+            console.log('STRESS')
             chooseStress = true;
             wordPos = 0;
         } else {
+            loadingRhymes = false;
             console.log("Ошибка: " + response.status);
         }
     };
@@ -564,9 +593,11 @@
         // TODO: move to states machine-like maybe??
         console.log('confirm poem', rhymesGot)
         if (rhymesGot) {
-            store.addWord(selectedRhyme, store.getLineSize(targetLineIndex) - 1, targetLineIndex);
-            store.setIndexes(stanzaIndex, targetLineIndex, -1);
+            if (rhymes.length) {
+                store.addWord(selectedRhyme, store.getLineSize(targetLineIndex) - 1, targetLineIndex);
+            }
             resetChoice();
+            store.setIndexes(stanzaIndex, targetLineIndex, -1);
         } else if (chooseStress) {
             onGetRhymes(wordPos);
         } else {
@@ -582,20 +613,16 @@
 
     const resetChoice = () => {
         chooseWord = false;
-        wordPos = 0;
         rhymesGot = false;
-        rhymes = [];
         chooseStress = false;
+        loadingRhymes = false;
+
+        store.resetIndexes();
+        wordPos = 0;
+
+        rhymes = [];
         selectedRhyme = '';
         targetStanzaIndex = -1;
-    };
-
-    $: isLineChosenForRhymes = (s, l) => {
-        return isChoosing() && s === targetStanzaIndex && l === targetLineIndex;
-    };
-
-    $: isWordChosenForRhymes = (s, l, w) => {
-        return (chooseWord || chooseStress) && s === targetStanzaIndex && l === chosenLineIndex && w === chosenWordIndex;
     };
 
     $: {
@@ -615,7 +642,6 @@
     }
 
     const onKeyDown = (e) => {
-        console.log('choooooose')
         if (isChoosing()) {
             if (e.key === 'Escape') {
                 onRejectRhymes();
@@ -626,21 +652,46 @@
     };
 
     const isChoosing = () => {
-        return chooseWord || rhymesGot || chooseStress;
+        return chooseWord || rhymesGot || chooseStress || loadingRhymes;
+    };
+
+    $: isLineChosenForRhymes = (s, l) => {
+        return isChoosing() && s === targetStanzaIndex && l === targetLineIndex;
+    };
+
+    $: isWordChosenForRhymes = (s, l, w) => {
+        const indexesEquals = s === targetStanzaIndex && l === chosenLineIndex && w === chosenWordIndex;
+        return isChoosing() && indexesEquals;
+    };
+
+    $: isNothingSelected = () => {
+        return stanzaIndex < 0 || lineIndex < 0 || wordIndex < 0;
     };
 
     $: isWordSelected = (s, l, w) => {
-        return s === stanzaIndex && l === lineIndex && w === wordIndex;
+        return !isNothingSelected() && s === stanzaIndex && l === lineIndex && w === wordIndex;
     }
 
     $: if (rhymesListElem) {
         rhymesListElem.focus();
     }
+
+    $: isFocused = (s, l, w) => {
+        return isWordChosenForRhymes(s, l, w) || !isChoosing() && isWordSelected(s, l, w);
+    }
+
+    const onInputTitle = () => {
+        title = titleInput.textContent;
+    };
 </script>
 
 <div class="poem">
-    <h2 contenteditable>
-        {title}
+    <h2
+            contenteditable
+            bind:this={titleInput}
+            on:input={onInputTitle}
+            class:empty={!title}>
+            {title}
     </h2>
     {#each stanzas as lines, s}
         <div class="stanza"
@@ -655,7 +706,7 @@
                                     {word}
                                     bind:pos={wordPos}
                                     chosen={isWordChosenForRhymes(s, l, w)}
-                                    focused={isWordChosenForRhymes(s, l, w) || isWordSelected(s, l, w)}
+                                    focused={isFocused(s, l, w)}
                                     editable={!isChoosing() && !isWordChosenForRhymes(s, l, w)}
                                     {chooseStress}
                                     on:focus={() => onFocus(s, l, w)}
@@ -721,15 +772,24 @@
 <style lang="scss">
   .poem {
     display: flex;
+    min-width: 70%;
     width: fit-content;
     width: -moz-max-content;
     flex-direction: column;
     margin-left: auto;
     margin-right: auto;
     padding: 1rem;
+
+    & h2 {
+      width: fit-content;
+      &.empty {
+        color: #cccccc;
+      }
+    }
   }
 
   .stanza {
+    width: 100%;
     margin-bottom: 1rem;
     padding: 0.5rem;
 

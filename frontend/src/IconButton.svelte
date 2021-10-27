@@ -54,7 +54,7 @@
         align-items: center;
         justify-content: center;
         padding: var(--button-padding);
-        line-height: calc(var(--height) + 2 * var(--button-padding));
+        //line-height: calc(var(--height) + 2 * var(--button-padding));
         border: none;
         background: none;
         color: var(--color);
@@ -65,6 +65,9 @@
 
         &.with-height {
             height: var(--height);
+            &.round {
+                border-radius: calc(var(--height) + 2 * var(--button-padding));
+            }
         }
 
         &:not(.with-text) :not(.with-height) {
@@ -79,10 +82,6 @@
         }
 
         opacity: var(--opacity);
-
-        &.round {
-            border-radius: calc(var(--height) + 2 * var(--button-padding));
-        }
 
         &.borders {
           border: 0.15rem solid var(--color);
@@ -118,7 +117,6 @@
     }
 
     .text {
-        margin-left: 0.25rem;
         font-weight: 500;
     }
 </style>

@@ -3,8 +3,12 @@
     import IconButton from "./IconButton.svelte";
 
     export let open = false;
-    export let text = false;
+    export let text;
     export let showConfirm = true;
+    export let showReject = true;
+    export let up = true;
+    export let left = false;
+    export let showArrow = true;
 
     const confirmTitle = 'Готово';
     const rejectTitle = 'Закрыть';
@@ -19,11 +23,23 @@
         dispatch('reject');
     };
 
+    const onKeyDown = (e) => {
+        if (open) {
+            if (e.key === 'Escape') {
+                console.log('esc')
+            } else if (e.key === 'Enter') {
+                console.log('ent')
+            }
+        }
+    };
+
 </script>
 
 {#if open}
-    <div class="tooltip">
-        <div class="tooltip-arrow"></div>
+    <div class="tooltip" class:up={up} class:left={left} on:keydown={onKeyDown}>
+        {#if showArrow}
+            <div class="tooltip-arrow"></div>
+        {/if}
         {text}
         <div class="tooltip-bar">
             {#if showConfirm}
@@ -34,12 +50,14 @@
                                 on:click={onConfirm}/>
                 </div>
             {/if}
-            <div class="tooltip-button">
-                <IconButton icon="cross" height="30" width="30" padding="6"
-                            title={rejectTitle} opacity={1} hoverOpacity={0.7}
-                            round borders
-                            on:click={onReject}/>
-            </div>
+            {#if showReject}
+                <div class="tooltip-button">
+                    <IconButton icon="cross" height="30" width="30" padding="6"
+                                title={rejectTitle} opacity={1} hoverOpacity={0.7}
+                                round borders
+                                on:click={onReject}/>
+                </div>
+            {/if}
         </div>
     </div>
 {/if}
@@ -49,7 +67,7 @@
     --color: #ffffff;
 
     position: absolute;
-    transform: translate(0, -100%);
+    transform: translate(0, 100%);
     top: 0;
     left: -0.25rem;
     min-width: 15rem;
@@ -57,10 +75,18 @@
     padding: 0.75rem 0.25rem 0.25rem 0.75rem;
     box-shadow: 0 4px 6px 0 #b7b1ac;
     text-align: left;
-    font-size: .8em;
+    font-size: .8rem;
     z-index: 2;
     box-sizing: border-box;
     border-radius: 0.25rem;
+
+    &.up {
+      transform: translateY(-100%);
+    }
+
+    &.left {
+      transform: translateX(-100%);
+    }
 
     & .tooltip-arrow {
       &::before {

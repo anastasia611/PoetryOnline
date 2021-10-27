@@ -17,14 +17,18 @@
 
     let tabFocused = false;
     let wordElement;
+    let lettersElement;
 
-    let orig = word;
-
-    $: chosenPos = pos;
+    let oldPos;
+    let curPos = pos;
 
     const setPos = (newPos, allowAfter = true) => {
-        console.trace()
-        console.log('setcp', pos, newPos, word)
+        // console.trace()
+        console.log('setcp', curPos, newPos, word)
+        // why large numbers??
+        if (newPos > word.length) {
+            return;
+        }
         if (newPos < 0) {
             newPos = 0;
         } else {
@@ -33,7 +37,8 @@
                 newPos = maxVal;
             }
         }
-        pos = newPos;
+        curPos = newPos;
+        pos = curPos;
     };
 
     const onRemove = () => {
@@ -54,34 +59,33 @@
     const onKeyPress = e => {
         const old = word
         word = getWordContent();
-        console.log('key press', old, word, getCaretCharacterOffsetWithin(wordElement))
 
         if (chosen) {
             e.preventDefault();
         } else {
-            setPos(getCaretCharacterOffsetWithin(wordElement) + 1);
+            setPos(getCaretCharacterOffsetWithin(wordElement));
 
             if (!isLetter(e.key) || isPunctuationMark(word)) {
                 e.preventDefault();
             }
 
             if (e.key === 'Enter') {
-                dispatch('enter', { word, pos });
+                dispatch('enter', { word, pos: curPos });
             } else if (isPunctuationMark(e.key)) {
                 dispatch('punct', { word, sign: e.key });
             } else if (e.key === ' ') {
                 if (word.length === 1) {
                     word = word.replace('-', '—');
                 }
-                dispatch('space', { word, pos });
+                dispatch('space', { word, pos: curPos });
             }
         }
     };
 
     const onKeyDown = (e) => {
+        console.log('key d', e.key, curPos)
         const old = word
         word = getWordContent();
-        console.log('key down', old, word, focused)
 
         if (e.key === ' ') {
             e.preventDefault();
@@ -91,9 +95,9 @@
             e.preventDefault();
 
             if (e.key === 'ArrowLeft') {
-                setPos(pos - 1, false);
+                setPos(curPos - 1, false);
             } else if (e.key === 'ArrowRight') {
-                setPos(pos + 1, false);
+                setPos(curPos + 1, false);
             }
         } else if (chosen) {
             e.preventDefault();
@@ -108,6 +112,7 @@
                 dispatch('choose-next');
             }
         } else if (focused) {
+            // console.log('key down', getCaretCharacterOffsetWithin(wordElement), word)
             setPos(getCaretCharacterOffsetWithin(wordElement));
 
             if (e.key === ' ') {
@@ -115,11 +120,11 @@
                     console.log('content repl', old, word)
                     word = word.replace('-', '—');
                 }
-                dispatch('space', { word, pos });
-            } else if (e.key === 'ArrowLeft' && pos === 0) {
+                dispatch('space', { word, pos: curPos });
+            } else if (e.key === 'ArrowLeft' && curPos === 0) {
                 e.preventDefault();
                 dispatch('back');
-            } else if (e.key === 'ArrowRight' && pos === word.length) {
+            } else if (e.key === 'ArrowRight' && curPos === word.length) {
                 e.preventDefault();
                 dispatch('next');
             } else if (e.key === 'ArrowUp') {
@@ -129,17 +134,17 @@
                 e.preventDefault();
                 dispatch('down');
             } else if (e.key === 'Backspace' || e.key === 'Delete') {
-                console.log('DEL', word, word.length)
+                console.log('DEL', word, e.key, curPos)
                 if (!word.length) {
                     // to prevent deletion of symbol in next word
                     console.log('DEL empty')
                     e.preventDefault();
                     onRemove();
-                } else if (e.key === 'Backspace' && pos === 0) {
+                } else if (e.key === 'Backspace' && curPos === 0) {
                     console.log('DEL before', word)
                     e.preventDefault();
                     onRemoveBefore();
-                } else if (e.key === 'Delete' && pos === word.length) {
+                } else if (e.key === 'Delete' && curPos === word.length) {
                     console.log('DEL after', word)
                     e.preventDefault();
                     onRemoveAfter();
@@ -156,22 +161,34 @@
     };
 
     const onClick = () => {
+        console.log(word, chooseStress)
         if (!chooseStress) {
             setPos(getCaretCharacterOffsetWithin(wordElement));
         }
     };
 
     const onFocus = () => {
-        dispatch('focus');
+        if (!chosen && !chooseStress) {
+            dispatch('focus');
+        }
         focused = true;
     };
 
     const onBlur = () => {
-        dispatch('edit-finished', { word });
+        if (editable) {
+            dispatch('edit-finished', { word });
+        }
 
-        wordElement.textContent = word;
+        // may be removed when choosing stress
+        if (wordElement) {
+            wordElement.textContent = word;
+        }
         tabFocused = false;
         focused = false;
+
+        oldPos = -1;
+        // console.trace()
+        console.log('unfoc')
         // TODO: needed?
         dispatch('blur', { word: getWordContent() });
     };
@@ -191,12 +208,17 @@
     };
 
     const onClickLetter = (p) => {
+        console.log('letter', word, p)
         setPos(p, false);
     };
 
     $: if (focused && wordElement) {
-        console.log('focused', word)
+        curPos = pos
         wordElement.focus();
+    }
+
+    $: if (chooseStress && lettersElement) {
+        lettersElement.focus();
     }
 
     afterUpdate(() => {
@@ -206,12 +228,12 @@
 
             if (focused) {
                 wordElement.focus();
-                const currPos = getCaretCharacterOffsetWithin(wordElement);
-                console.log('set car pos', old, word, pos, currPos, wordElement.textContent)
-                if (pos <= word.length && currPos !== pos) {
-                    console.log('set12')
+                // console.log('set car pos', old, word, pos, curPos, wordElement.textContent)
+                if (pos <= word.length && pos !== oldPos) {
                     setCaretPosition(wordElement, pos);
+                    setPos(pos);
                 }
+                oldPos = pos;
             }
         }
     });
@@ -227,25 +249,21 @@
             <RemoveButton icon="cross" disabled={!editable} iconSize="10" {title} on:click={onRemove}/>
         </div>
 
-        <div role="textbox"
-             tabindex=0
-             title={word}
-             contenteditable={editable}
-             class="word-text"
-             on:input={onInput}
-             bind:this={wordElement}
-             class:key-focus-visible={tabFocused}
-             use:tabFocus
-             on:keypress={onKeyPress}
-             on:keydown={onKeyDown}
-             on:click={onClick}
-             on:tabfocus={onTabFocus}
-             on:focus={onFocus}
-             on:blur={onBlur}
-        >
-            {#if chosen && chooseStress}
+        {#if chosen && chooseStress}
+            <div role="textbox"
+                 tabindex=0
+                 title={word}
+                 class="word-text"
+                 class:key-focus-visible={tabFocused}
+                 use:tabFocus
+                 bind:this={lettersElement}
+                 on:keydown={onKeyDown}
+                 on:tabfocus={onTabFocus}
+                 on:focus={onFocus}
+                 on:blur={onBlur}
+            >
                 {#each word as letter, i}
-                    {#if i === chosenPos}
+                    {#if i === curPos}
                         <b>{letter}</b>
                     {:else}
                         <span class="letter" on:click={() => onClickLetter(i)}>
@@ -253,10 +271,27 @@
                         </span>
                     {/if}
                 {/each}
-            {:else}
+            </div>
+        {:else}
+            <div role="textbox"
+                 tabindex=0
+                 title={word}
+                 contenteditable={editable}
+                 class="word-text"
+                 on:input={onInput}
+                 bind:this={wordElement}
+                 class:key-focus-visible={tabFocused}
+                 use:tabFocus
+                 on:keypress={onKeyPress}
+                 on:keydown={onKeyDown}
+                 on:click={onClick}
+                 on:tabfocus={onTabFocus}
+                 on:focus={onFocus}
+                 on:blur={onBlur}
+            >
                 {word}
-            {/if}
-        </div>
+            </div>
+        {/if}
     </div>
 </div>
 

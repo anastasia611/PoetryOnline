@@ -2,7 +2,8 @@
 export function clickOutside(node) {
 
     const handleClick = event => {
-        if (node && !node.contains(event.target) && !event.defaultPrevented) {
+        if (event.pointerId !== -1 && node && !node.contains(event.target) && !event.defaultPrevented) {
+            // console.log(event)
             node.dispatchEvent(
                 new CustomEvent('clickOutside', node)
             )
