@@ -3,7 +3,7 @@ import { push } from "../common/arrays";
 const currentRevisionIdxKey = "current-revision";
 const revisionsKey = "poem-revisions";
 
-const MAX_HISTORY_SIZE = 6;
+const MAX_HISTORY_SIZE = 50;
 
 
 export function getLatest() {
