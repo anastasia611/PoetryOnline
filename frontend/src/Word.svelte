@@ -19,7 +19,7 @@
     let wordElement;
     let lettersElement;
 
-    let oldPos;
+    let oldPos = pos;
     let curPos = pos;
 
     const setPos = (newPos, allowAfter = true) => {
@@ -38,7 +38,9 @@
             }
         }
         curPos = newPos;
-        pos = curPos;
+        if (chooseStress) {
+            pos = curPos;
+        }
     };
 
     const onRemove = () => {
@@ -228,7 +230,7 @@
 
             if (focused) {
                 wordElement.focus();
-                // console.log('set car pos', old, word, pos, curPos, wordElement.textContent)
+                console.log('set car pos', old, word, oldPos, pos, curPos, wordElement.textContent)
                 if (pos <= word.length && pos !== oldPos) {
                     setCaretPosition(wordElement, pos);
                     setPos(pos);

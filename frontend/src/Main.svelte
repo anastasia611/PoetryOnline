@@ -1,18 +1,33 @@
 <script>
     import Poem from "./Poem.svelte";
     import Helper from "./Helper.svelte";
+    import * as history from "./data/localhistory";
 
     export let stanzas = [];
+    export let poemTitle = 'Silentium';
 
-    const title = 'Поэт.Онлайн';
+    const pageTitle = 'Поэт.Онлайн';
+
+    let revision = 0;
+    const storedData = history.getLatest();
+    if (storedData) {
+        const { data, revision } = history.getLatest();
+        stanzas = data && data.stanzas || stanzas;
+        poemTitle = data && data.title || poemTitle;
+    } else {
+        history.save(poemTitle, stanzas);
+    }
 
     let tooltipIndex = 0;
     let isTooltipOpen = false;
+    let poemChanged = false;
 
-    const onKeyDown = (e) => {
-        if (open) {
+    window.onkeydown = (e) => {
+        if (isTooltipOpen) {
+            e.preventDefault();
+
             if (e.key === 'Escape') {
-                isTooltipOpen = 0;
+                isTooltipOpen = false;
             } else if (e.key === 'Enter') {
                 tooltipIndex++;
             } else if (e.key === 'ArrowLeft') {
@@ -21,22 +36,56 @@
                 tooltipIndex++;
             }
         }
+
+        if (e.ctrlKey || e.metaKey) {
+            if (e.key === 'z') {
+                e.preventDefault();
+
+                if (e.shiftKey) {
+                    console.log('NEXT');
+                    history.next();
+                } else {
+                    console.log('BACK');
+                    history.back();
+                }
+
+                const storedData = history.getCurrent();
+                if (storedData) {
+                    console.log('STORED', storedData.data.stanzas)
+                    const { data, revision } = storedData;
+                    stanzas = data && data.stanzas || stanzas;
+                    poemTitle = data && data.title || poemTitle;
+                }
+            }
+        }
     };
 
+    const onPoemChange = ({detail}) => {
+        poemChanged = true;
+        console.trace()
+        console.log('CH')
+        stanzas = detail.stanzas;
+        poemTitle = detail.title;
+        history.save(poemTitle, stanzas, revision);
+    };
 </script>
 
-<header on:keydown|preventDefault={onKeyDown}>
-    {title}
+<header>
+    <span class="title">{pageTitle}</span>
     <ul>
         <li></li>
         <li>
-            <Helper bind:open={isTooltipOpen} bind:tooltipIndex />
+            <Helper bind:open={isTooltipOpen} bind:tooltipIndex/>
         </li>
     </ul>
 </header>
 <main>
     <div class="container">
-        <Poem {stanzas}/>
+        <Poem
+                bind:stanzas
+                bind:title={poemTitle}
+                on:changed={onPoemChange}
+        />
     </div>
 </main>
 
@@ -55,6 +104,11 @@
     background-color: #F4C8BC;
     box-shadow: 0 4px 6px 0 #b7b1ac;
     z-index: 3;
+
+    &.title {
+      font-weight: 500;
+      color: #200606aa;
+    }
 
     & ul {
       display: flex;

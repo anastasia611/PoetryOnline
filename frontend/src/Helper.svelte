@@ -1,5 +1,4 @@
 <script>
-    import { afterUpdate } from "svelte";
     import tabFocus from "./actions/tabFocus";
     import { clickOutside } from './actions/clickOutside';
     import IconButton from "./IconButton.svelte";
@@ -10,27 +9,46 @@
     const tooltips = [
         {
             title: "Название",
-            text: "Введите свое название в поле над текстом"
+            text: "Введите свое название в поле над текстом."
         },
         {
             title: "Навигация стрелками",
-            text: "Для навигации по тексту используйте стрелки вправо-влево. Для перехода на нижнюю (верхнюю) строку - клавиши вверх (вниз)."
+            text: "Для навигации по тексту можно использовать стрелки вправо-влево. " +
+                "Для перехода на нижнюю (верхнюю) строку - клавиши вверх (вниз)."
         },
         {
             title: "Новая строка",
-            text: "Для перехода на новую строку нажмите Enter или кнопку + в конце текущей строки"
+            text: "Для перехода на новую строку нажмите Enter или кнопку + в конце текущей строки."
         },
         {
             title: "Новая строфа",
-            text: "Для перехода на новую строфу перейдите на новую строку и нажмите Enter"
+            text: "Для перехода на новую строфу перейдите на новую строку и нажмите Enter."
         },
         {
             title: "Удаление",
-            text: "Для удаления текста работают привычные клавиши Delete / Backspace. После удаления всего содержимого строки происходит переход на другую строку. При удалении последней строки в строфе происходит переход на другую строфу."
+            text: "Для удаления текста работают клавиши Delete / Backspace. " +
+                "После удаления всего содержимого строки происходит переход на другую строку. " +
+                "При удалении последней строки в строфе происходит переход на другую строфу."
         },
         {
             title: "Подбор рифмы",
-            text: "Нажмите на "
+            text: "Нажмите на иконку с лампочкой в конце строки, чтобы начать подбор рифмы. " +
+            "Далее необходимо выбрать слово, к которому будет подбираться рифма. " +
+            "Это можно сделать, нажав на слово в конце какой-либо строки или перемещаясь с помощью стрелок вправо-влево, вверх-вниз. " +
+            "Когда выбор сделан, нажмите Enter или кнопку ✓ в окне подсказки. " +
+            "Выйти из режима выбора рифмы можно нажав Esc, кнопку х в окне подсказки, иконку лампочки или просто кликнув в любом месте страницы."
+        },
+        {
+            title: "Выбор варианта рифмы",
+            text: "Когда рифма будет подобрана, появится выпадающий список с вариантами выбора. " +
+            "Чтобы сохранить выбор, нажмите Enter или кнопку ✓ в окне подсказки."
+        },
+        {
+            title: "Выбор ударения",
+            text: "В некоторых словах могут быть разные варианты ударения. " +
+            "В таком нужно будет указать ударение (информация об этом появится в окне подсказки). " +
+            "Это можно сделать с помощью стрелок вправо-влево или кликнув на нужную букву. " +
+            "Когда выбор сделан, нажмите Enter или кнопку ✓ в окне подсказки."
         },
     ];
 
@@ -67,7 +85,7 @@
 
     const reset = () => {
         open = false;
-        tooltipIndex = 0;
+        // tooltipIndex = 0;
         // console.trace()
         // console.log('reset', tooltipIndex, tooltips.length)
     };
@@ -79,7 +97,6 @@
         } else {
             tooltipIndex++;
         }
-        console.log('next2', tooltipIndex, tooltips.length)
     };
 
     const back = () => {
@@ -110,8 +127,8 @@
             on:click={onClick}/>
 
     {#if open}
-        <div class="tooltip"
-             bind:this={tooltip}>
+        <div class="tooltip" bind:this={tooltip}>
+            <div class="tooltip-arrow"></div>
 
             <div class="tooltip-header">
                 <b>{tooltips[tooltipIndex].title}</b>
@@ -157,9 +174,10 @@
     --color: #ffffff;
 
     position: absolute;
-    top: 1.25rem;
-    left: 1.25rem;
-    min-width: 15rem;
+    top: 2rem;
+    left: 2.3rem;
+    // TODO: dynamic width
+    min-width: 20rem;
     background-color: var(--color);
     padding: 0.75rem 0.25rem 0.25rem 0.75rem;
     box-shadow: 0 4px 6px 0 #b7b1ac;
@@ -185,6 +203,25 @@
     & .tooltip-button {
       &.left {
         margin-right: 1rem;
+      }
+    }
+
+    & .tooltip-arrow {
+      position: absolute;
+      top: calc(0rem - 0.7rem);
+      left: calc(100% - 1.95rem);
+
+      &::before {
+        border-width: 0 0.2rem 0.7rem 0.9rem;
+        border-left-color: transparent;
+        border-right-color: transparent;
+        content: '';
+        display: block;
+        width: 0;
+        height: 0;
+        border-style: solid;
+        position: absolute;
+        color: var(--color);
       }
     }
   }

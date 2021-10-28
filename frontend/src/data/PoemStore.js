@@ -56,6 +56,10 @@ export class PoemDataStore {
         return this.stanzas;
     };
 
+    setStanzas(stanzas) {
+        this.stanzas = stanzas;
+    };
+
     getStanza(s = this.stanzaIndex) {
         return this.stanzas[s];
     };
@@ -146,9 +150,11 @@ export class PoemDataStore {
         return !line || !line.length || line.length === 1 && !line[0];
     };
 
-    getWord(w = this.wordIndex, l = this.lineIndex, s = this.stanzaIndex) {
+    getWord(w = this.wordIndex, l = this.lineIndex, s = this.stanzaIndex, strict = false) {
         const line = this.getLine(l, s);
-        w = w > this.getLineSize() - 1 ? this.getLineSize() - 1 : w;
+        if (!strict && w > this.getLineSize(l) - 1) {
+            w = w > this.getLineSize(l) - 1;
+        }
         if (line) {
             return line[w];
         }
@@ -173,6 +179,8 @@ export class PoemDataStore {
         word = adjustHyphen(word);
         if (line) {
             line[w] = word;
+            console.log(this.stanzas)
+            this.stanzasStore.set(this.stanzas);
         }
     };
 

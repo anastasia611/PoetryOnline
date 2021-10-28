@@ -93,7 +93,6 @@
         border-width: 0.6rem 0.45rem 0 0.45rem;
         border-left-color: transparent;
         border-right-color: transparent;
-        border-bottom-color: transparent;
         top: calc(100%);
         content: '';
         display: block;

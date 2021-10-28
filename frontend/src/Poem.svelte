@@ -1,19 +1,20 @@
 <script>
-    // TODO: on click line - create new word
+    import { createEventDispatcher, afterUpdate } from 'svelte';
     import IconButton from "./IconButton.svelte";
     import Word from "./Word.svelte";
     import { getRhymes } from "./api/rhymes";
     import { clickOutside } from './actions/clickOutside';
-    import { isHyphen, isPunctuationMark } from "./common/strings";
+    import { isPunctuationMark } from "./common/strings";
     import { PoemDataStore } from "./data/PoemStore";
     import Tooltip from "./Tooltip.svelte";
 
     export let stanzas = [];
-
+    export let title;
     export let stanzaIndex = -1;
     export let lineIndex = -1;
     export let wordIndex = -1;
-    let wordPos = 0;
+
+    const dispatch = createEventDispatcher();
 
     const titlePlaceholder = 'Введите название';
     const addLineTitle = 'Добавить строку';
@@ -25,13 +26,13 @@
     const noRhymesTooltip = 'Рифмы не найдены';
     const noRhymes = 'Не найдено';
 
-    let title = 'Silentium';
     let titleInput;
     let chooseWord = false;
     let targetLineIndex = -1;
     let targetStanzaIndex = -1;
     let chosenLineIndex = -1;
     let chosenWordIndex = -1;
+    let wordPos = 0;
 
     let rhymesGot = false;
     let chooseStress = false;
@@ -68,6 +69,10 @@
         wordIndex = value;
     });
 
+    const sendChangedEvent = () => {
+        dispatch('changed', { stanzas: store.getStanzas(), title });
+    };
+
     const onFocus = (s, l, w) => {
         if (chooseWord) {
             // if within this stanza update selection
@@ -101,6 +106,8 @@
         } else { // merge words if not punctuation
             mergeWords(s, l, w);
         }
+
+        sendChangedEvent();
     };
 
     const onRemoveAfterWord = (s, l, w) => {
@@ -108,6 +115,8 @@
         if (store.isLastLineInStanza(l, s)) {
             mergeStanzas(s + 1);
         }
+
+        sendChangedEvent();
     };
 
     const onRemoveWord = (s, l, w) => {
@@ -115,23 +124,28 @@
             return;
         }
 
+        // store.setIndexes(s, l, w);
+
         const words = store.getLine(l, s);
 
         store.removeWord(w, l, s);
         if (words) {
             if (!words.length) {
                 store.setIndexes(s, l, w);
-                onRemoveLine(s, l);
+                onRemoveLine(s, l, false);
             } else { //???
                 onBackWord(s, l, w);
             }
         }
+
+        sendChangedEvent();
     }
 
-    const onRemoveLine = (s, l) => {
+    const onRemoveLine = (s, l, needUpdate = true) => {
         if (chooseWord || rhymesGot || loadingRhymes) {
             return;
         }
+
         store.setIndexes(s, l);
         store.removeLine();
         if (!store.getStanza().length) {
@@ -143,7 +157,11 @@
         }
         store.setWordIndex(store.getLine().length - 1);
         wordPos = store.getWord().length;
-        console.log(stanzaIndex, lineIndex, wordIndex)
+
+        console.log(stanzaIndex, lineIndex, wordIndex);
+        if (needUpdate) {
+            sendChangedEvent();
+        }
     };
 
     const onEnter = (e, s, l, w) => {
@@ -157,7 +175,7 @@
         if (pos === word.length) {
             // if the last word in line insert line after
             if (store.isLastWordInLine(w, l, s)) {
-                onAddLine(s, l, [ '' ]);
+                onAddLine(s, l, [ '' ], false);
             } else {
                 // insert line, this word in first part
                 splitLine(s, l, w + 1);
@@ -165,7 +183,7 @@
         } else if (pos === 0) { // if enter before word
             // if first word insert line before
             if (w === 0) {
-                onAddLine(s, l - 1, [ '' ]);
+                onAddLine(s, l - 1, [ '' ], false);
             } else {
                 // insert line, this word in second part
                 splitLine(s, l, w);
@@ -174,6 +192,8 @@
             splitWord(s, l, w, pos);
             splitLine(s, l, w + 1);
         }
+
+        sendChangedEvent();
     };
 
     const onSpace = (e, s, l, w) => {
@@ -194,15 +214,20 @@
         } else { // space within word - split into 2
             splitWord(s, l, w, pos);
         }
+
+        sendChangedEvent();
     };
 
     // TODO: split word
     const onPunct = (e, s, l, w) => {
         store.setIndexes(s, l, w);
+
         const word = e.detail.word;
         updateWord(word);
         store.addWord(e.detail.sign);
         store.addWord('');
+
+        sendChangedEvent();
     };
 
     const onEditFinished = (e, s, l, w) => {
@@ -210,9 +235,10 @@
         console.log('EDIT', word, store.getWord(w, l, s))
         if (!word) {
             onRemoveWord(s, l, w);
-        } else if (store.getWord(w, l, s) && word !== store.getWord(w, l, s)) {
+        } else if (typeof store.getWord(w, l, s, true) !== 'undefined' && word !== store.getWord(w, l, s)) {
             store.setIndexes(s, l, w);
             updateWord(word);
+            sendChangedEvent();
         }
     };
 
@@ -227,11 +253,15 @@
         wordPos = 0;
     };
 
-    const onNextLine = (s, l, w) => {
+    const onNextLine = (s, l, w, sameWordIndex) => {
         store.setIndexes(s, l, w);
         if (!store.isLastLineInStanza(l, s)) {
             store.setLineIndex(++l);
-            setWordIndexInLine(w);
+            if (sameWordIndex) {
+                setWordIndexInLine(w);
+            } else {
+                store.setWordIndex(0);
+            }
         } else {
             onNextStanza(s, l, w);
         }
@@ -265,12 +295,16 @@
         store.setWordIndex(w > maxWordInd ? maxWordInd : w);
     };
 
-    const onBackLine = (s, l, w) => {
+    const onBackLine = (s, l, w, sameWordIndex) => {
         console.log('BACK l')
         store.setIndexes(s, l, w);
         if (l > 0) {
             store.setLineIndex(--l);
-            setWordIndexInLine(w);
+            if (sameWordIndex) {
+                setWordIndexInLine(w);
+            } else {
+                store.setWordIndex(store.getLineSize() - 1);
+            }
             stanzas = store.getStanzas();
         } else {
             onBackStanza(s, l, w);
@@ -293,12 +327,12 @@
     // TODO: set correct index in next line
     const onUp = (s, l, w) => {
         store.setIndexes(s, l, w);
-        onBackLine(s, l, w);
+        onBackLine(s, l, w, true);
     };
 
     const onDown = (s, l, w) => {
         store.setIndexes(s, l, w);
-        onNextLine(s, l, w);
+        onNextLine(s, l, w, true);
     };
 
     const onAddStanza = (lines, s) => {
@@ -308,10 +342,14 @@
             console.log('add st', stanza[0])
             store.addStanza(lines, s);
         }
+
+        sendChangedEvent();
     };
 
     const updateWord = (word, w = wordIndex, l = lineIndex, s = stanzaIndex) => {
+        console.log('upd', word)
         if (word) {
+            console.log('set', word)
             store.setWord(word, w, l, s);
         } else {
             store.removeWord();
@@ -322,7 +360,7 @@
     };
 
     // change args order
-    const onAddLine = (s = stanzaIndex, l, newLine) => {
+    const onAddLine = (s = stanzaIndex, l, newLine, needUpdate = true) => {
         if (chooseWord || rhymesGot || loadingRhymes) {
             return;
         }
@@ -354,6 +392,10 @@
             store.addLine(isNewEmpty ? [ '' ] : newLine, l, s);
             store.setWordIndex(0);
         }
+
+        if (needUpdate) {
+            sendChangedEvent();
+        }
     };
 
     const splitStanza = (s, l) => {
@@ -382,9 +424,9 @@
         const line1 = line.slice(0, w);
         const line2 = line.slice(w, line.length ? line.length : 1);
         console.log('Bef', line1, line2, store.getStanza())
-        onAddLine(s, l, line1);
+        onAddLine(s, l, line1, false);
         console.log('Aft l1', store.getStanza(), store.getLine())
-        onAddLine(s, l + 1, line2);
+        onAddLine(s, l + 1, line2, false);
         console.log('Aft l2', store.getStanza())
         store.removeLine(l);
         console.log('Set idsx', s, l + 1, 0)
@@ -405,7 +447,7 @@
         }
         store.removeLine(l - 1, s);
         store.removeLine(l - 1, s);
-        onAddLine(s, l - 2, line);
+        onAddLine(s, l - 2, line, false);
         store.setIndexes(s, l - 1, line1.length);
         wordPos = 0;
     };
@@ -586,6 +628,7 @@
             store.setStanzaIndex(s);
             store.setLineIndex(l);
             store.setWordIndex(store.getLineSize(l) - 1);
+            wordPos = store.getLastWord(l, s).length;
         }
     }
 
@@ -595,6 +638,7 @@
         if (rhymesGot) {
             if (rhymes.length) {
                 store.addWord(selectedRhyme, store.getLineSize(targetLineIndex) - 1, targetLineIndex);
+                sendChangedEvent();
             }
             resetChoice();
             store.setIndexes(stanzaIndex, targetLineIndex, -1);
@@ -651,6 +695,10 @@
         }
     };
 
+    afterUpdate(() => {
+        store.setStanzas(stanzas);
+    });
+
     const isChoosing = () => {
         return chooseWord || rhymesGot || chooseStress || loadingRhymes;
     };
@@ -682,6 +730,7 @@
 
     const onInputTitle = () => {
         title = titleInput.textContent;
+        sendChangedEvent();
     };
 </script>
 
@@ -690,8 +739,9 @@
             contenteditable
             bind:this={titleInput}
             on:input={onInputTitle}
-            class:empty={!title}>
-            {title}
+            class:empty={!title}
+            {title}>
+        {title}
     </h2>
     {#each stanzas as lines, s}
         <div class="stanza"
@@ -781,7 +831,6 @@
     padding: 1rem;
 
     & h2 {
-      width: fit-content;
       &.empty {
         color: #cccccc;
       }
