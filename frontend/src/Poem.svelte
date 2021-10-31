@@ -7,6 +7,7 @@
     import { isPunctuationMark } from "./common/strings";
     import { PoemDataStore } from "./data/PoemStore";
     import Tooltip from "./Tooltip.svelte";
+    import * as rhymesStorage from "./data/rhymesStorage";
 
     export let stanzas = [];
     export let title;
@@ -253,7 +254,7 @@
         wordPos = 0;
     };
 
-    const onNextLine = (s, l, w, sameWordIndex) => {
+    const onNextLine = async (s, l, w, sameWordIndex) => {
         store.setIndexes(s, l, w);
         if (!store.isLastLineInStanza(l, s)) {
             store.setLineIndex(++l);
@@ -360,7 +361,7 @@
     };
 
     // change args order
-    const onAddLine = (s = stanzaIndex, l, newLine, needUpdate = true) => {
+    const onAddLine = async (s = stanzaIndex, l, newLine, needUpdate = true) => {
         if (chooseWord || rhymesGot || loadingRhymes) {
             return;
         }
@@ -391,6 +392,16 @@
         } else {
             store.addLine(isNewEmpty ? [ '' ] : newLine, l, s);
             store.setWordIndex(0);
+        }
+
+        const res = findWordForRhyme(s, l);
+        const word = store.getWord(res.w, res.l, s);
+        console.log('PRELOAD', res.w, res.l, word)
+        if (!rhymesStorage.get(word)) {
+            let response = await getRhymes(word);
+            if (response.data) {
+                rhymesStorage.set(word, response.data);
+            }
         }
 
         if (needUpdate) {
@@ -488,32 +499,41 @@
         store.removeWord(w - 1, l, s);
         store.setIndexes(s, l, w - 1);
 
-        console.log('merge')
-
         wordPos = word1.length;
     };
 
+    const displayRhymes = (data) => {
+        rhymes = data;
+        rhymesGot = true;
+        loadingRhymes = false;
+        chooseWord = false;
+        if (rhymes.length) {
+            selectedRhyme = rhymes[0].toLowerCase();
+            console.log('SEL', selectedRhyme)
+        }
+    };
+
     const onGetRhymes = async (stressPos) => {
-        loadingRhymes = true;
         const word = store.getWord(chosenWordIndex, chosenLineIndex, stanzaIndex);
-        let response = await getRhymes(word, stressPos);
-        if (response.data) {
-            rhymes = response.data;
-            rhymesGot = true;
-            loadingRhymes = false;
-            chooseWord = false;
-            if (rhymes.length) {
-                selectedRhyme = rhymes[0].toLowerCase();
-            }
-        } else if (response.error === 'Stress needed') {
-            loadingRhymes = false;
-            chooseWord = false;
-            console.log('STRESS')
-            chooseStress = true;
-            wordPos = 0;
+
+        const preloaded = rhymesStorage.get(word);
+        if (preloaded) {
+            rhymesStorage.set(word, preloaded);
+            displayRhymes(preloaded);
         } else {
-            loadingRhymes = false;
-            console.log("Ошибка: " + response.status);
+            loadingRhymes = true;
+            let response = await getRhymes(word, stressPos);
+            if (response.data) {
+                displayRhymes(response.data);
+            } else if (response.error === 'Stress needed') {
+                loadingRhymes = false;
+                chooseWord = false;
+                chooseStress = true;
+                wordPos = 0;
+            } else {
+                loadingRhymes = false;
+                console.log("Ошибка: " + response.status);
+            }
         }
     };
 
@@ -634,7 +654,7 @@
 
     const onConfirmRhymes = () => {
         // TODO: move to states machine-like maybe??
-        console.log('confirm poem', rhymesGot)
+        console.log('confirm poem', rhymesGot, selectedRhyme)
         if (rhymesGot) {
             if (rhymes.length) {
                 store.addWord(selectedRhyme, store.getLineSize(targetLineIndex) - 1, targetLineIndex);
@@ -722,6 +742,11 @@
 
     $: if (rhymesListElem) {
         rhymesListElem.focus();
+        // for some reason 'selectedRhyme' is not set when preloaded
+        if (rhymes.length) {
+            selectedRhyme = rhymes[0].toLowerCase();
+            rhymesListElem.value = rhymes[0].toLowerCase();
+        }
     }
 
     $: isFocused = (s, l, w) => {
@@ -829,6 +854,7 @@
     margin-left: auto;
     margin-right: auto;
     padding: 1rem;
+    padding-bottom: 3rem;
 
     & h2 {
       &.empty {

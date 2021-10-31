@@ -3,6 +3,13 @@
     import Helper from "./Helper.svelte";
     import * as history from "./data/localhistory";
 
+    const email = "anastasia.rv611@gmail.com";
+
+    const startYear = 2021;
+    const date = new Date();
+    const year = date.getFullYear();
+    let yearRecord;
+
     export let stanzas = [];
     export let poemTitle = 'Silentium';
 
@@ -68,6 +75,14 @@
         poemTitle = detail.title;
         history.save(poemTitle, stanzas, revision);
     };
+
+    $: {
+        if (startYear === year) {
+            yearRecord = year;
+        } else {
+            yearRecord = `${startYear} - ${year}`;
+        }
+    }
 </script>
 
 <header>
@@ -88,6 +103,12 @@
         />
     </div>
 </main>
+<footer>
+    <p>По вопросам улучшений и предложений:
+        <a href="mailto:{email}">{email}</a>
+    </p>
+    <p>©&nbsp;{yearRecord}&nbsp;Поэт.Онлайн</p>
+</footer>
 
 <style lang="scss">
   header {
@@ -105,7 +126,7 @@
     box-shadow: 0 4px 6px 0 #b7b1ac;
     z-index: 3;
 
-    &.title {
+    & .title {
       font-weight: 500;
       color: #200606aa;
     }
@@ -122,13 +143,21 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 0.5em;
+    padding: 1.5rem 0.5rem 2.5rem 0.5rem
   }
 
   .container {
     box-shadow: 0 6px 8px 0 #b7b1ac;
     min-width: 75%;
     background-color: white;
+  }
+
+  footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 2rem;
+    font-size: small;
   }
 
   #overlay {
