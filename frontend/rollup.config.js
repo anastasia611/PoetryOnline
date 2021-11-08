@@ -5,6 +5,7 @@ import livereload from 'rollup-plugin-livereload';
 import { terser } from 'rollup-plugin-terser';
 import css from 'rollup-plugin-css-only';
 import preprocess from 'svelte-preprocess';
+import { scss } from 'svelte-preprocess';
 import replace from '@rollup/plugin-replace';
 import {config} from 'dotenv';
 import url from 'rollup-plugin-url'
@@ -47,7 +48,14 @@ export default {
 				// enable run-time checks when not in production
 				dev: !production
 			},
-			preprocess: preprocess()
+			preprocess: [
+				scss({
+					defaults: {
+						//script: "typescript",
+						style: "scss",
+					}
+				})
+			]
 		}),
 
 		copy({

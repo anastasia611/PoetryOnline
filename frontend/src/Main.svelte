@@ -86,7 +86,9 @@
 </script>
 
 <header>
-    <span class="title">{pageTitle}</span>
+    <span class="title">
+        {pageTitle}
+    </span>
     <ul>
         <li></li>
         <li>
@@ -104,13 +106,14 @@
     </div>
 </main>
 <footer>
-    <p>По вопросам улучшений и предложений:
-        <a href="mailto:{email}">{email}</a>
-    </p>
-    <p>©&nbsp;{yearRecord}&nbsp;Поэт.Онлайн</p>
+    <p>По вопросам улучшений и предложений:</p>
+    <p><a href="mailto:{email}">{email}</a></p>
+    <p class="year">©&nbsp;{yearRecord}&nbsp;Поэт.Онлайн</p>
 </footer>
 
 <style lang="scss">
+  @import './styles/_mixins';
+
   header {
     position: fixed;
     top: 0;
@@ -134,21 +137,23 @@
     & ul {
       display: flex;
       list-style: none;
+      margin: 0;
       margin-right: 2rem;
     }
   }
 
   main {
-    margin-top: 4rem;
+    margin-top: 3rem;
+    padding: 0.5rem 0.5rem;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 1.5rem 0.5rem 2.5rem 0.5rem
   }
 
   .container {
     box-shadow: 0 6px 8px 0 #b7b1ac;
-    min-width: 75%;
+    min-width: 80%;
+    max-width: 100%;
     background-color: white;
   }
 
@@ -156,8 +161,14 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-top: 2rem;
-    font-size: small;
+    padding-top: 1rem;
+    font-size: x-small;
+    & p {
+      margin: 0;
+    }
+    & .year {
+      margin: 1rem 0;
+    }
   }
 
   #overlay {
@@ -172,5 +183,35 @@
     background-color: rgba(0, 0, 0, 0.5);
     z-index: 2;
     cursor: pointer;
+  }
+
+  @include portrait {
+    header {
+      padding: 0.75rem 0.75rem;
+      font-size: larger;
+      box-shadow: 0 2px 4px 0 #b7b1ac;
+
+      & ul {
+        margin-right: 1rem;
+      }
+    }
+
+    main {
+      & .container {
+        min-width: 20rem;
+      }
+    }
+  }
+
+  @include lg {
+    main {
+      margin-top: 4rem;
+      padding: 1.5rem 0.5rem 2.5rem 0.5rem;
+    }
+
+    footer {
+      padding-top: 2rem;
+      font-size: small;
+    }
   }
 </style>

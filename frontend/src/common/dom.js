@@ -15,7 +15,7 @@ export function getCaretCharacterOffsetWithin(element) {
             preCaretRange.selectNodeContents(element);
             preCaretRange.setEnd(range.endContainer, range.endOffset);
             caretOffset = preCaretRange.toString().length;
-            // console.log(preCaretRange.toString(), caretOffset);
+            console.log(preCaretRange.toString(), caretOffset);
         }
     } else if ((sel = doc.selection) && sel.type !== "Control") {
         const textRange = sel.createRange();
@@ -33,6 +33,8 @@ export function setCaretPosition(el, pos) {
     const sel = window.getSelection();
 
     if (el.firstChild) {
+        console.log('SET CAR', pos)
+
         range.setStart(el.firstChild, pos);
         range.collapse(true);
 
@@ -43,4 +45,8 @@ export function setCaretPosition(el, pos) {
 
 export function convertPixelsToRem(px) {
     return px / parseFloat(getComputedStyle(document.documentElement).fontSize);
+}
+
+export function isPortraitOrientation() {
+    return window.innerHeight > window.innerWidth;
 }

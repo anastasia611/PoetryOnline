@@ -8,6 +8,7 @@
     import { PoemDataStore } from "./data/PoemStore";
     import Tooltip from "./Tooltip.svelte";
     import * as rhymesStorage from "./data/rhymesStorage";
+    import { isPortraitOrientation } from "./common/dom";
 
     export let stanzas = [];
     export let title;
@@ -396,11 +397,12 @@
 
         const res = findWordForRhyme(s, l);
         const word = store.getWord(res.w, res.l, s);
-        console.log('PRELOAD', res.w, res.l, word)
-        if (!rhymesStorage.get(word)) {
+        console.log('PRELOAD', res.w, res.l, word);
+        const preloaded = rhymesStorage.getRhymes(word);
+        if (!preloaded || !preloaded.length) {
             let response = await getRhymes(word);
             if (response.data) {
-                rhymesStorage.set(word, response.data);
+                rhymesStorage.setRhymes(word, response.data);
             }
         }
 
@@ -516,9 +518,9 @@
     const onGetRhymes = async (stressPos) => {
         const word = store.getWord(chosenWordIndex, chosenLineIndex, stanzaIndex);
 
-        const preloaded = rhymesStorage.get(word);
-        if (preloaded) {
-            rhymesStorage.set(word, preloaded);
+        const preloaded = rhymesStorage.getRhymes(word);
+        if (preloaded && preloaded.length) {
+            rhymesStorage.setRhymes(word, preloaded);
             displayRhymes(preloaded);
         } else {
             loadingRhymes = true;
@@ -742,10 +744,10 @@
 
     $: if (rhymesListElem) {
         rhymesListElem.focus();
-        // for some reason 'selectedRhyme' is not set when preloaded
+        // TODO: for some reason 'selectedRhyme' is not set when preloaded
         if (rhymes.length) {
-            selectedRhyme = rhymes[0].toLowerCase();
-            rhymesListElem.value = rhymes[0].toLowerCase();
+            // selectedRhyme = rhymes[0].toLowerCase();
+            // rhymesListElem.value = rhymes[0].toLowerCase();
         }
     }
 
@@ -757,11 +759,14 @@
         title = titleInput.textContent;
         sendChangedEvent();
     };
+
+    $: lineBarBtnSz = isPortraitOrientation() ? "15" : "18";
 </script>
 
 <div class="poem">
     <h2
             contenteditable
+            spellcheck="false"
             bind:this={titleInput}
             on:input={onInputTitle}
             class:empty={!title}
@@ -812,31 +817,33 @@
                                 {/if}
                             </select>
                         {/if}
-                    </div>
-                    <div class="right-menu">
-                        <div class="bulb-container">
-                            <div class="menu-button" class:active={isLineChosenForRhymes(s, l)}>
-                                <IconButton
-                                        icon="bulb" iconSize="18" padding="4"
-                                        opacity={isLineChosenForRhymes(s, l) ? 1: 0.2}
-                                        title={getRhymeTitle}
-                                        on:click={() => onBulbClick(s, l)}/>
+                        <div class="right-menu">
+                            <div class="bulb-container">
+                                <div class="menu-button" class:active={isLineChosenForRhymes(s, l)}>
+                                    <IconButton
+                                            icon="bulb" iconSize={lineBarBtnSz} padding="4"
+                                            opacity={isLineChosenForRhymes(s, l) ? 1: 0.2}
+                                            title={getRhymeTitle}
+                                            on:click={() => onBulbClick(s, l)}/>
+                                </div>
+                            </div>
+                            <Tooltip
+                                    open={isLineChosenForRhymes(s, l)}
+                                    text={tooltipText}
+                                    up={s > 0 || l > 1}
+                                    showConfirm={!rhymesGot || rhymes.length}
+                                    on:reject={onRejectRhymes}
+                                    on:confirm={onConfirmRhymes}/>
+                            <div class="menu-button">
+                                <IconButton icon="cross" iconSize={lineBarBtnSz} padding="4" title={removeLineTitle}
+                                            on:click={() => onRemoveLine(s, l)}/>
+                            </div>
+                            <div class="menu-button">
+                                <IconButton icon="plus" iconSize={lineBarBtnSz} padding="4" title={addLineTitle}
+                                            on:click={() => onAddLine(s, l)}/>
                             </div>
                         </div>
-                        <Tooltip
-                                open={isLineChosenForRhymes(s, l)}
-                                text={tooltipText}
-                                showConfirm={!rhymesGot || rhymes.length}
-                                on:reject={onRejectRhymes}
-                                on:confirm={onConfirmRhymes}/>
-                        <div class="menu-button">
-                            <IconButton icon="cross" iconSize="18" padding="4" title={removeLineTitle}
-                                        on:click={() => onRemoveLine(s, l)}/>
-                        </div>
-                        <div class="menu-button">
-                            <IconButton icon="plus" iconSize="18" padding="4" title={addLineTitle}
-                                        on:click={() => onAddLine(s, l)}/>
-                        </div>
+
                     </div>
                 </div>
             {/each}
@@ -845,18 +852,23 @@
 </div>
 
 <style lang="scss">
+  @import './styles/_mixins';
+
   .poem {
     display: flex;
     min-width: 70%;
+    max-width: 100%;
     width: fit-content;
     width: -moz-max-content;
     flex-direction: column;
     margin-left: auto;
     margin-right: auto;
-    padding: 1rem;
-    padding-bottom: 3rem;
+    padding: 0.5rem;
+    margin-bottom: 0.25rem;
 
     & h2 {
+      font-size: larger;
+      margin: 0.5rem 0 0.5rem 0.75rem;
       &.empty {
         color: #cccccc;
       }
@@ -865,6 +877,7 @@
 
   .stanza {
     width: 100%;
+    max-width: calc(100% - 1rem);
     margin-bottom: 1rem;
     padding: 0.5rem;
 
@@ -877,13 +890,15 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 2rem;
+    line-height: 2rem;
+    width: 100%;
 
     & .words {
-      display: flex;
-      align-items: center;
-      padding: 0 0.5rem;
-      height: 100%;
+      //display: flex;
+      //align-items: center;
+      padding: 0.25rem 0.5rem;
+      width: 100%;
+      line-height: 1.5rem;
     }
 
     .right-menu {
@@ -919,7 +934,45 @@
     }
   }
 
-  h2 {
-    margin-left: 2.25rem;
+  @include sm {
+    h2 {
+      margin-left: 2rem !important;
+    }
+  }
+
+  @include lg {
+    .poem {
+      padding: 1rem;
+      padding-bottom: 3rem;
+    }
+
+    h2 {
+      margin: 1.5rem !important;
+      font-size: x-large !important;
+    }
+  }
+
+  @include portrait {
+    .poem {
+      padding: 0.5rem;
+      margin-bottom: 0.25rem !important;
+    }
+
+    .stanza {
+      padding: 0.5rem 0.25rem;
+    }
+
+    .line {
+      line-height: 1rem;
+    }
+
+    .words {
+      padding: 0.25rem 0.25rem !important;
+      line-height: 1.25rem;
+    }
+
+    & .menu-button {
+      width: 1.25rem;
+    }
   }
 </style>

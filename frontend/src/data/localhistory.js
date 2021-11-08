@@ -5,6 +5,7 @@ const revisionsKey = "poem-revisions";
 
 const MAX_HISTORY_SIZE = 50;
 
+// clearHistory();
 
 export function getLatest() {
     return getRevisionData(getLastRevision());

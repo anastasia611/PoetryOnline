@@ -4,6 +4,7 @@
     import { isLetter, isPunctuationMark } from "./common/strings";
     import tabFocus from "./actions/tabFocus";
     import { getCaretCharacterOffsetWithin, setCaretPosition } from "./common/dom";
+    import { isPortraitOrientation } from "./common/dom";
 
     export let word = '';
     export let focused = false;
@@ -38,6 +39,7 @@
             }
         }
         curPos = newPos;
+        console.log('SET POS', word, curPos)
         if (chooseStress) {
             pos = curPos;
         }
@@ -114,7 +116,7 @@
                 dispatch('choose-next');
             }
         } else if (focused) {
-            // console.log('key down', getCaretCharacterOffsetWithin(wordElement), word)
+            console.log('key down', getCaretCharacterOffsetWithin(wordElement), word)
             setPos(getCaretCharacterOffsetWithin(wordElement));
 
             if (e.key === ' ') {
@@ -163,13 +165,16 @@
     };
 
     const onClick = () => {
-        console.log(word, chooseStress)
+        console.log('CLICK', word)
         if (!chooseStress) {
             setPos(getCaretCharacterOffsetWithin(wordElement));
+            // setCaretPosition(wordElement, curPos);
+            // console.log('CLICK SET CAR',word, curPos)
         }
     };
 
     const onFocus = () => {
+        console.log('On focus', word)
         if (!chosen && !chooseStress) {
             dispatch('focus');
         }
@@ -215,8 +220,9 @@
     };
 
     $: if (focused && wordElement) {
-        curPos = pos
-        wordElement.focus();
+        curPos = pos;
+        console.log('focus word', word)
+        // wordElement.focus();
     }
 
     $: if (chooseStress && lettersElement) {
@@ -229,9 +235,9 @@
             wordElement.textContent = word;
 
             if (focused) {
-                wordElement.focus();
-                console.log('set car pos', old, word, oldPos, pos, curPos, wordElement.textContent)
+                // wordElement.focus();
                 if (pos <= word.length && pos !== oldPos) {
+                    console.log('set car pos', old, word, oldPos, pos, curPos, wordElement.textContent)
                     setCaretPosition(wordElement, pos);
                     setPos(pos);
                 }
@@ -239,7 +245,6 @@
             }
         }
     });
-
 </script>
 
 <div class="word-container"
@@ -247,9 +252,13 @@
     <div class="word"
          class:chosen={chosen}>
 
-        <div class="remove">
-            <RemoveButton icon="cross" disabled={!editable} iconSize="10" {title} on:click={onRemove}/>
-        </div>
+        {#if !isPortraitOrientation()}
+            <div class="remove">
+                <RemoveButton icon="cross" disabled={!editable} iconSize="10" {title}
+                              on:click={onRemove}
+                              on:touchend={onRemove}/>
+            </div>
+        {/if}
 
         {#if chosen && chooseStress}
             <div role="textbox"
@@ -268,7 +277,9 @@
                     {#if i === curPos}
                         <b>{letter}</b>
                     {:else}
-                        <span class="letter" on:click={() => onClickLetter(i)}>
+                        <span class="letter"
+                              on:click={() => onClickLetter(i)}
+                              on:touchend={() => onClickLetter(i)}>
                             {letter}
                         </span>
                     {/if}
@@ -279,6 +290,7 @@
                  tabindex=0
                  title={word}
                  contenteditable={editable}
+                 spellcheck="false"
                  class="word-text"
                  on:input={onInput}
                  bind:this={wordElement}
@@ -298,11 +310,13 @@
 </div>
 
 <style lang="scss">
+  @import './styles/_mixins';
+
   .word-container {
-    display: flex;
-    align-items: center;
+    display: inline-flex;
     //padding: 0.25rem 0.5rem;
     height: 100%;
+    white-space: nowrap;
 
     &:hover, &:focus, &:focus-within {
       & .word {
@@ -372,4 +386,23 @@
     display: inline-block;
     width: fit-content;
   }
+
+  @include portrait {
+    .word {
+      padding: 0.125rem 0.125rem;
+
+      & .word-text {
+        //height: 0.75rem;
+        font-size: medium;
+        min-width: 0.125rem;
+        padding-right: 0;
+        margin: 0 0.125rem;
+      }
+
+      & .remove {
+        margin-right: 0;
+      }
+    }
+  }
+
 </style>
