@@ -32,3 +32,11 @@ export function parseWords(str) {
 export function capitalize(string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
 }
+
+export function stanzasToString(stanzas) {
+    return stanzas.reduce((res, stanza, s) => {
+        return res + stanza.reduce((lineRes, line) => {
+            return lineRes + line.join(' ') + '\n';
+        }, '') + (s === stanzas.length - 1 ? '' : '\n');
+    }, '');
+}

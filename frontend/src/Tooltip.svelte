@@ -1,7 +1,7 @@
 <script>
     import { createEventDispatcher } from 'svelte';
-    import IconButton from "./IconButton.svelte";
-    import { isPortraitOrientation } from "./common/dom";
+    import IconButton from './IconButton.svelte';
+    import { isPortraitOrientation } from './common/dom';
 
     export let open = false;
     export let text;
@@ -17,9 +17,9 @@
     const dispatch = createEventDispatcher();
 
     let portrait = isPortraitOrientation();
-    $: width = portrait ? "6rem" : "15rem";
-    $: btnSz = portrait ? "25" : "30";
-    $: iconSz = portrait ? "8" : "10";
+    $: width = portrait ? '6rem' : '15rem';
+    $: btnSz = portrait ? '25' : '30';
+    $: iconSz = portrait ? '8' : '10';
 
     window.addEventListener('orientationchange', function() {
         console.log('ORIENT', window.innerHeight, window.innerWidth)

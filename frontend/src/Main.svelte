@@ -1,7 +1,9 @@
 <script>
     import Poem from "./Poem.svelte";
     import Helper from "./Helper.svelte";
+    import IconButton from "./IconButton.svelte";
     import * as history from "./data/localhistory";
+    import { stanzasToString } from "./common/strings";
 
     const email = "anastasia.rv611@gmail.com";
 
@@ -67,13 +69,17 @@
         }
     };
 
-    const onPoemChange = ({detail}) => {
+    const onPoemChange = ({ detail }) => {
         poemChanged = true;
         console.trace()
         console.log('CH')
         stanzas = detail.stanzas;
         poemTitle = detail.title;
         history.save(poemTitle, stanzas, revision);
+    };
+
+    const onCopy = () => {
+        navigator.clipboard.writeText(stanzasToString(stanzas));
     };
 
     $: {
@@ -90,7 +96,14 @@
         {pageTitle}
     </span>
     <ul>
-        <li></li>
+        <li>
+            {#if navigator.clipboard}
+                <IconButton
+                        icon="copy" iconSize="30" padding="4" color="#444444" opacity="0.7" hoverOpacity="1"
+                        title={"Подсказка"}
+                        on:click={onCopy}/>
+            {/if}
+        </li>
         <li>
             <Helper bind:open={isTooltipOpen} bind:tooltipIndex/>
         </li>
@@ -139,6 +152,10 @@
       list-style: none;
       margin: 0;
       margin-right: 2rem;
+
+      & li {
+        margin-right: 1rem;
+      }
     }
   }
 
@@ -163,9 +180,11 @@
     align-items: center;
     padding-top: 1rem;
     font-size: x-small;
+
     & p {
       margin: 0;
     }
+
     & .year {
       margin: 1rem 0;
     }

@@ -5,6 +5,7 @@ import CheckIcon from "./CheckIcon.svelte";
 import HelpIcon from "./HelpIcon.svelte";
 import ArrowRightIcon from "./ArrowRightIcon.svelte";
 import ArrowLeftIcon from "./ArrowLeftIcon.svelte";
+import CopyIcon from "./CopyIcon.svelte";
 
 export { default as PlusIcon } from "./PlusIcon.svelte";
 export { default as CrossIcon } from "./CrossIcon.svelte";
@@ -13,6 +14,7 @@ export { default as CheckIcon } from "./CheckIcon.svelte";
 export { default as HelpIcon } from "./HelpIcon.svelte";
 export { default as ArrowRightIcon } from "./ArrowRightIcon.svelte";
 export { default as ArrowLeftIcon } from "./ArrowLeftIcon.svelte";
+export { default as CopyIcon } from "./CopyIcon.svelte";
 
 export function getIconComponent(name) {
     switch (name) {
@@ -30,5 +32,7 @@ export function getIconComponent(name) {
             return ArrowRightIcon;
         case 'arrow-left':
             return ArrowLeftIcon;
+        case 'copy':
+            return CopyIcon;
     }
 }

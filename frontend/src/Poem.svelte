@@ -947,7 +947,7 @@
     }
 
     h2 {
-      margin: 1.5rem !important;
+      margin: 1rem 2rem !important;
       font-size: x-large !important;
     }
   }
