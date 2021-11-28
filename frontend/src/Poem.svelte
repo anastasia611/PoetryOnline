@@ -4,7 +4,11 @@
     import Word from './Word.svelte';
     import { getRhymes } from './api/rhymes';
     import { clickOutside } from './actions/clickOutside';
-    import { isPunctuationMark, getPunctuation } from './common/strings';
+    import {
+        isPunctuationMark,
+        getPunctuation,
+        parseStanzas,
+    } from './common/strings';
     import { PoemDataStore } from './data/PoemStore';
     import Tooltip from './Tooltip.svelte';
     import * as rhymesStorage from './data/rhymesStorage';
@@ -241,20 +245,80 @@
         sendChangedEvent();
     };
 
-    // needed for some mobile cases when standard key codes (space, punct) are not available
-    const validateWord = (e, s, l, w) => {
-        let { word, pos } = e.detail;
-        if (word.indexOf(' ') >= 0) {
-            word = word.replace(' ', '');
-            console.log('SPACE', word, word.length);
-            onSpace({ detail: { word, pos } }, s, l, w);
+    const onPaste = (e, s, l, w) => {
+        const content = e.detail.content;
+        validateWord(content, s, l, w);
+    };
+
+    // needed for some mobile cases when standard key codes (space, punct) are not available and for copy text
+    // TODO: finish split logic for all!!!!!
+    // TODO: fix history!!!!!
+    const validateWord = (word, s, l, w) => {
+        const parsed = parseStanzas(word);
+        console.log('PARSED', word, parsed);
+
+        const first = parsed[0];
+
+        // if line
+        if (Array.isArray(parsed)) {
+            // if stanza
+            if (parsed.length > 0 && Array.isArray(first)) {
+                // if stanzas
+                if (first.length > 0 && Array.isArray(first[0])) {
+                    for (let i = 0; i < parsed.length; i++) {
+                        onAddStanza(parsed[i], s - 1 + i);
+                    }
+                } else {
+                    // if stanza
+                    onAddStanza(parsed, s - 1);
+                }
+            } else {
+                // if line
+                onAddLine(s, l, parsed);
+            }
+        } else {
+            if (parsed.lines) {
+                if (store.isLastWordInLine(w) || w === 0) {
+                    onRemoveWord(s, l, w);
+                    const startWInd = w === 0 ? l - 1 : l;
+                    for (let i = 0; i < parsed.lines.length; i++) {
+                        onAddLine(s, startWInd + i, parsed.lines[i], false);
+                    }
+                } else {
+                    splitLine(s, l, w);
+                    const rmLine = store.getLine(l + 1, s);
+                    store.removeLine(l + 1, s);
+                    onAddLine(s, l, parsed.lines[0]); // norm?
+                    mergeLines(s, l + 1);
+
+                    for (let i = 1; i < parsed.lines.length; i++) {
+                        onAddLine(s, l + i, parsed.lines[i], false);
+                    }
+                    onAddLine(s, l + parsed.lines.length, rmLine, false);
+                }
+            } else if (parsed.words) {
+                // if words
+                onRemoveWord(s, l, w);
+                for (let i = 0; i < parsed.words.length; i++) {
+                    store.addWord(parsed.words[i], w - 1 + i, l, s);
+                }
+            } else {
+                // if word
+                updateWord(word, w, l, s);
+            }
         }
-        const punct = getPunctuation(word);
-        if (punct) {
-            console.log('PUNCT', punct);
-            word = word.replace(punct, '');
-            onPunct({ detail: { word, sign: punct, pos } }, s, l, w);
-        }
+
+        // if (word.indexOf(' ') >= 0) {
+        //     word = word.replace(' ', '');
+        //     console.log('SPACE', word, word.length);
+        //     onSpace({ detail: { word, pos } }, s, l, w);
+        // }
+        // const punct = getPunctuation(word);
+        // if (punct) {
+        //     console.log('PUNCT', punct);
+        //     word = word.replace(punct, '');
+        //     onPunct({ detail: { word, sign: punct, pos } }, s, l, w);
+        // }
     };
 
     const onEditFinished = (e, s, l, w) => {
@@ -266,7 +330,7 @@
             typeof store.getWord(w, l, s, true) !== 'undefined' &&
             word !== store.getWord(w, l, s)
         ) {
-            validateWord(e, s, l, w);
+            validateWord(word, s, l, w);
             store.setIndexes(s, l, w);
             updateWord(word);
             sendChangedEvent();
@@ -274,7 +338,7 @@
     };
 
     const onChange = (e, s, l, w) => {
-        validateWord(e, s, l, w);
+        validateWord(e.detail.word, s, l, w);
     };
 
     const onNextWord = (s, l, w) => {
@@ -733,7 +797,6 @@
             onGetRhymes();
         }
         chooseStress = false;
-        // selectedRhyme = '';
     };
 
     const onRejectRhymes = () => {
@@ -892,6 +955,7 @@
                                 on:enter={(e) => onEnter(e, s, l, w)}
                                 on:space={(e) => onSpace(e, s, l, w)}
                                 on:punct={(e) => onPunct(e, s, l, w)}
+                                on:paste={(e) => onPaste(e, s, l, w)}
                                 on:back={(e) => onBackWord(s, l, w, e)}
                                 on:next={(e) => onNextWord(s, l, w, e)}
                                 on:up={(e) => onUp(s, l, w, e)}

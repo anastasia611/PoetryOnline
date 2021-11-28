@@ -1,22 +1,22 @@
 <script>
-    import RemoveButton from "./IconButton.svelte";
-    import { createEventDispatcher, afterUpdate } from "svelte";
-    import { isLetter, isPunctuationMark } from "./common/strings";
-    import tabFocus from "./actions/tabFocus";
+    import RemoveButton from './IconButton.svelte';
+    import { createEventDispatcher, afterUpdate } from 'svelte';
+    import { isLetter, isPunctuationMark } from './common/strings';
+    import tabFocus from './actions/tabFocus';
     import {
         getCaretCharacterOffsetWithin,
         setCaretPosition,
-    } from "./common/dom";
-    import { isPortraitOrientation } from "./common/dom";
+    } from './common/dom';
+    import { isPortraitOrientation } from './common/dom';
 
-    export let word = "";
+    export let word = '';
     export let focused = false;
     export let pos = 0;
     export let chooseStress = false;
     export let chosen = false;
     export let editable = false;
 
-    const title = "Удалить слово";
+    const title = 'Удалить слово';
     const dispatch = createEventDispatcher();
 
     let tabFocused = false;
@@ -27,7 +27,7 @@
     let curPos = pos;
 
     const setPos = (newPos, allowAfter = true) => {
-        console.log("setcp", curPos, newPos, word);
+        console.log('setcp', curPos, newPos, word);
         // why large numbers??
         if (newPos > word.length) {
             return;
@@ -41,42 +41,42 @@
             }
         }
         curPos = newPos;
-        console.log("SET POS", word, curPos);
+        console.log('SET POS', word, curPos);
         if (chooseStress) {
             pos = curPos;
         }
     };
 
     const onRemove = () => {
-        dispatch("remove");
+        dispatch('remove');
     };
 
     const onRemoveBefore = () => {
-        dispatch("remove-before", {
+        dispatch('remove-before', {
             word,
             punct: isPunctuationMark(word),
         });
     };
 
     const onRemoveAfter = () => {
-        dispatch("remove-after", { word });
+        dispatch('remove-after', { word });
     };
 
-    document.addEventListener("keydown", e => {
+    document.addEventListener('keydown', (e) => {
         if (chooseStress) {
             e.preventDefault();
 
-            if (e.key === "ArrowLeft") {
+            if (e.key === 'ArrowLeft') {
                 console.log('POS', curPos - 1);
                 setPos(curPos - 1, false);
-            } else if (e.key === "ArrowRight") {
+            } else if (e.key === 'ArrowRight') {
                 setPos(curPos + 1, false);
             }
         }
     });
 
     const onKeyPress = (e) => {
-        console.log("key pr", e);
+        console.log('key pr', e);
         const old = word;
         word = getWordContent();
 
@@ -89,31 +89,31 @@
                 e.preventDefault();
             }
 
-            if (e.key === "Enter") {
-                dispatch("enter", { word, pos: curPos });
+            if (e.key === 'Enter') {
+                dispatch('enter', { word, pos: curPos });
             } else if (isPunctuationMark(e.key)) {
-                dispatch("punct", { word, sign: e.key });
-            } else if (e.key === " ") {
+                dispatch('punct', { word, sign: e.key });
+            } else if (e.key === ' ') {
                 if (word.length === 1) {
-                    word = word.replace("-", "—");
+                    word = word.replace('-', '—');
                 }
-                dispatch("space", { word, pos: curPos });
+                dispatch('space', { word, pos: curPos });
             }
         }
     };
 
     const onKeyDown = (e) => {
-        console.log("key d", e, e.key, curPos);
+        console.log('key d', e, e.key, curPos);
         const old = word;
         word = getWordContent();
 
-        if (e.key === " ") {
+        if (e.key === ' ') {
             e.preventDefault();
         }
 
         if (focused && !chooseStress && !chosen) {
             console.log(
-                "key down",
+                'key down',
                 getCaretCharacterOffsetWithin(wordElement),
                 word,
                 word.length,
@@ -121,37 +121,37 @@
             );
             setPos(getCaretCharacterOffsetWithin(wordElement));
 
-            if (e.key === " ") {
+            if (e.key === ' ') {
                 if (word.length === 1) {
-                    console.log("content repl", old, word);
-                    word = word.replace("-", "—");
+                    console.log('content repl', old, word);
+                    word = word.replace('-', '—');
                 }
-                dispatch("space", { word, pos: curPos });
-            } else if (e.key === "ArrowLeft" && curPos === 0) {
+                dispatch('space', { word, pos: curPos });
+            } else if (e.key === 'ArrowLeft' && curPos === 0) {
                 e.preventDefault();
-                dispatch("back");
-            } else if (e.key === "ArrowRight" && curPos === word.length) {
+                dispatch('back');
+            } else if (e.key === 'ArrowRight' && curPos === word.length) {
                 e.preventDefault();
-                dispatch("next");
-            } else if (e.key === "ArrowUp") {
+                dispatch('next');
+            } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
-                dispatch("up");
-            } else if (e.key === "ArrowDown") {
+                dispatch('up');
+            } else if (e.key === 'ArrowDown') {
                 e.preventDefault();
-                dispatch("down");
-            } else if (e.key === "Backspace" || e.key === "Delete") {
-                console.log("DEL", word, e.key, curPos);
+                dispatch('down');
+            } else if (e.key === 'Backspace' || e.key === 'Delete') {
+                console.log('DEL', word, e.key, curPos);
                 if (!word.length) {
                     // to prevent deletion of symbol in next word
-                    console.log("DEL empty");
+                    console.log('DEL empty');
                     e.preventDefault();
                     onRemove();
-                } else if (e.key === "Backspace" && curPos === 0) {
-                    console.log("DEL before", word);
+                } else if (e.key === 'Backspace' && curPos === 0) {
+                    console.log('DEL before', word);
                     e.preventDefault();
                     onRemoveBefore();
-                } else if (e.key === "Delete" && curPos === word.length) {
-                    console.log("DEL after", word);
+                } else if (e.key === 'Delete' && curPos === word.length) {
+                    console.log('DEL after', word);
                     e.preventDefault();
                     onRemoveAfter();
                 }
@@ -163,11 +163,11 @@
         if (chooseStress || chosen) {
             return word;
         }
-        return wordElement && wordElement.textContent || "";
+        return (wordElement && wordElement.textContent) || '';
     };
 
     const onClick = () => {
-        console.log("CLICK", word);
+        console.log('CLICK', word);
         if (!chooseStress) {
             setPos(getCaretCharacterOffsetWithin(wordElement));
             // setCaretPosition(wordElement, curPos);
@@ -176,16 +176,16 @@
     };
 
     const onFocus = () => {
-        console.log("On focus", word);
+        console.log('On focus', word);
         if (!chosen && !chooseStress) {
-            dispatch("focus");
+            dispatch('focus');
         }
         focused = true;
     };
 
     const onBlur = () => {
         if (editable) {
-            dispatch("edit-finished", { word });
+            dispatch('edit-finished', { word });
         }
 
         // may be removed when choosing stress
@@ -197,9 +197,9 @@
 
         oldPos = -1;
         // console.trace()
-        console.log("unfoc");
+        console.log('unfoc');
         // TODO: needed?
-        dispatch("blur", { word: getWordContent() });
+        dispatch('blur', { word: getWordContent() });
     };
 
     const onTabFocus = () => {
@@ -207,10 +207,25 @@
             tabFocused = true;
         }
     };
+// TODO: in strings utility fix parsing new stanza <-> empty line, etc.
+    const onPaste = (e) => {
+        let paste = (e.clipboardData || window.clipboardData).getData('text');
+        paste = paste.replaceAll('\n', '\r\n')
+        const selection = window.getSelection();
+        if (!selection.rangeCount) { 
+            return false; 
+        }
+        selection.deleteFromDocument();
+        selection.getRangeAt(0).insertNode(document.createTextNode(paste));
+
+        e.preventDefault();
+
+        dispatch('paste', { content: wordElement.textContent.replaceAll('\r\n', '\n') });
+    };
 
     const onInput = (e) => {
         console.log(
-            "input",
+            'input',
             word,
             wordElement.textContent,
             wordElement.textContent.length,
@@ -221,17 +236,17 @@
         // if (pos > 0) {
         //     setPos(pos - 1);
         // }
-        dispatch("change", { word, pos: curPos });
+        dispatch('change', { word, pos: curPos });
     };
 
     const onClickLetter = (p) => {
-        console.log("letter", word, p);
+        console.log('letter', word, p);
         setPos(p, false);
     };
 
     $: if (focused && wordElement) {
         curPos = pos;
-        console.log("focus word", word);
+        console.log('focus word', word);
         if (!chosen) {
             wordElement.focus();
         }
@@ -252,7 +267,7 @@
                 wordElement.focus();
                 if (pos <= word.length && pos !== oldPos) {
                     console.log(
-                        "set car pos",
+                        'set car pos',
                         old,
                         word,
                         oldPos,
@@ -330,6 +345,7 @@
                 on:tabfocus={onTabFocus}
                 on:focus={onFocus}
                 on:blur={onBlur}
+                on:paste={onPaste}
             >
                 {word.toLowerCase()}
             </div>
@@ -338,7 +354,7 @@
 </div>
 
 <style lang="scss">
-    @import "./styles/_mixins";
+    @import './styles/_mixins';
 
     .word-container {
         display: inline-flex;
@@ -404,6 +420,7 @@
         min-width: var(--size);
         background: none;
         padding-right: 0.125rem;
+        white-space: pre-line;
 
         &:focus {
             outline: none;
