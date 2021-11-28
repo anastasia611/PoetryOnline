@@ -3,9 +3,11 @@ package rhymes;
 public class RhymesResult {
     private ErrorCodes error;
     private String[] data;
+    private String word;
 
-    public RhymesResult(String[] data) {
+    public RhymesResult(String[] data, String word) {
         this.data = data;
+        this.word = word;
     }
 
     public RhymesResult(ErrorCodes error) {
@@ -22,6 +24,10 @@ public class RhymesResult {
 
     public String[] getData() {
         return data;
+    }
+
+    public String getWord() {
+        return word;
     }
 
     public void setData(String[] data) {

@@ -2,6 +2,7 @@ package server;
 
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpServer;
+import org.apache.commons.lang3.ArrayUtils;
 import rhymes.ErrorCodes;
 import rhymes.Rhymes;
 import rhymes.RhymesResult;
@@ -17,7 +18,7 @@ import java.util.*;
 
 
 public class JsonServer {
-    private static final String HOSTNAME = "localhost";
+    private static final String HOSTNAME = "192.168.31.44";
     private static final int PORT = 8082;
     private static final int BACKLOG = 1;
 
@@ -35,6 +36,9 @@ public class JsonServer {
     private static final String METHOD_OPTIONS = "OPTIONS";
     private static final String ALLOWED_METHODS = METHOD_GET + "," + METHOD_OPTIONS;
 
+    private static final int MIN_QUALITY_OPTION = 4;
+    private static final int MIN_RHYMES_NUMBER = 15;
+
     private static Map<ErrorCodes, String> errors = new HashMap<>() {{
         put(ErrorCodes.STRESS_NEEDED, "Stress needed");
     }};
@@ -42,9 +46,9 @@ public class JsonServer {
     public static void main(final String... args) throws IOException {
         final HttpServer server = HttpServer.create(new InetSocketAddress(HOSTNAME, PORT), BACKLOG);
 
-        server.createContext("/getRhyme", he -> {
-            try {
-                he.getResponseHeaders().add("Access-Control-Allow-Origin", "http://localhost:5000");
+        server.createContext("/getRhymes", he -> {
+            try (he) {
+                he.getResponseHeaders().add("Access-Control-Allow-Origin", "http://192.168.31.44:5000");
                 final Headers headers = he.getResponseHeaders();
                 final String requestMethod = he.getRequestMethod().toUpperCase();
 
@@ -56,24 +60,33 @@ public class JsonServer {
                         List<String> wordParam = requestParameters.get("word");
 
                         int quality = 0;
+                        String[] wordRhymes = new String[]{};
 
-                        if (wordParam == null || wordParam.size() == 0) {
-                            responseBody = "[]";
-                        } else {
-                            String word = wordParam.get(0);
-                            RhymesResult result = Rhymes.getRhymes(word, quality);
-                            if (result.getData() != null) {
-                                String[] wordRhymes = result.getData();
-                                String array = "";
-                                if (wordRhymes.length > 0) {
-                                    array = "\"" + String.join("\",\"", wordRhymes) + "\"";
-                                }
-                                responseBody = "{ \"data\": [" + array +  "] }";
+                        do {
+                            if (wordParam == null || wordParam.size() == 0) {
+                                responseBody = "[]";
                             } else {
-                                String error = errors.get(result.getError());
-                                responseBody = "{ \"error\": \"" + error + "\" }";
+                                String word = wordParam.get(0);
+                                RhymesResult result = Rhymes.getRhymes(word, quality);
+                                if (result.getData() != null) {
+                                    wordRhymes = ArrayUtils.addAll(wordRhymes, result.getData());
+                                    String wordWithStress = result.getWord();
+                                    String array = "";
+                                    if (wordRhymes.length > 0) {
+                                        array = "\"" + String.join("\",\"", wordRhymes) + "\"";
+                                    }
+                                    responseBody = "{ \"data\": [" + array + "]";
+                                    if (!wordWithStress.equals("")) {
+                                        responseBody += ", \"word\": \"" + wordWithStress + "\"";
+                                    }
+                                    responseBody += "}";
+                                } else {
+                                    String error = errors.get(result.getError());
+                                    responseBody = "{ \"error\": \"" + error + "\" }";
+                                }
                             }
-                        }
+                            quality++;
+                        } while (wordRhymes.length < MIN_RHYMES_NUMBER && quality <= MIN_QUALITY_OPTION);
 
                         headers.set(HEADER_CONTENT_TYPE, String.format("application/json; charset=%s", CHARSET));
                         final byte[] rawResponseBody = responseBody.getBytes(CHARSET);
@@ -91,8 +104,6 @@ public class JsonServer {
                         he.sendResponseHeaders(STATUS_METHOD_NOT_ALLOWED, NO_RESPONSE_LENGTH);
                         break;
                 }
-            } finally {
-                he.close();
             }
         });
         server.start();

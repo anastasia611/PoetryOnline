@@ -72,22 +72,23 @@
                     mobile: false
                 }
             )
-            tooltips.push(
-                {
-                    title: "Сохранение",
-                    text: "Текст и история изменений сохраняются только локально в Вашем браузере. " +
-                    "Это в том числе означает, что созданный ранее стих не будет отображаться в анонимной вкладке или другом браузере. " +
-                        (navigator.clipboard ?
-                            "Для сохранения используйте копирование (кнопка в правом верхнем углу) или экспорт (TODO)"
-                            : "Для сохранения используйте экспорт (TODO)")
-                }
-            )
         }
+        tooltips.push(
+            {
+                title: "Сохранение",
+                text: "Текст и история изменений сохраняются только локально в Вашем браузере. " +
+                    "Это в том числе означает, что созданный ранее стих не будет отображаться в анонимной вкладке или другом браузере. " +
+                    (navigator.clipboard ?
+                        "Для сохранения используйте копирование (кнопка в правом верхнем углу) или экспорт (TODO)"
+                        : "Для сохранения используйте экспорт (TODO)")
+            }
+        )
     }
 
     const infoColor = "#0336FFCC";
     const backText = "Назад";
     const nextText = "Понятно";
+    const nextTitle = "Вперед";
 
     let index;
     let focused = false;
@@ -187,7 +188,7 @@
                             class:key-focus-visible={focused}
                             class="next"
                             use:tabFocus
-                            title={nextText}
+                            title={nextTitle}
                             on:tabfocus={() => focused = true}
                             on:blur={() => focused = false}>
                         <span class="text">{nextText}</span>

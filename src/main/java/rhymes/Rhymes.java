@@ -21,30 +21,41 @@ import java.util.Arrays;
 
 public class Rhymes {
     public static RhymesResult getRhymes(String word, int quality) {
-        String[] resultWords = new String[]{};
+        String[] resultWords;
 
         try {
             String html = getRhymesResponse(word, quality);
+            String wordWithStress = "";
 
             Document doc = Jsoup.parse(html);
             Element result = doc.select("#results").get(0);
             Elements results = result.children();
 
-            Elements errors = doc.select(".error");
-                for (int i = 0; i < errors.size(); i++) {
-                    if (errors.get(i).getElementsContainingText("Уточните ударение").size() > 0) {
-                        return new RhymesResult(ErrorCodes.STRESS_NEEDED);
+            Elements wordElements = doc.select("#results .caps");
+            if (wordElements.size() > 0) {
+                Element wordElement = wordElements.get(0);
+                for (Element child : wordElement.children()) {
+                    if (child.tag().getName().equals("u")) {
+                        String letter = child.text();
+                        child.replaceWith(new TextNode(letter.toUpperCase()));
                     }
                 }
+                wordWithStress = wordElement.text();
+            }
+
+            Elements errors = doc.select(".error");
+            for (Element error : errors) {
+                if (error.getElementsContainingText("ударение").size() > 0) {
+                    return new RhymesResult(ErrorCodes.STRESS_NEEDED);
+                }
+            }
 
             int i = 0;
             while (i < results.size() && !results.get(i).classNames().contains("pos")) {
                 results.get(i++).remove();
             }
 
-            for (; i < results.size(); i++) {
-                Element child = results.get(i);
-
+            for (Element child : results) {
                 if (child.classNames().contains("pos")) {
                     child.remove();
                 }
@@ -110,11 +121,12 @@ public class Rhymes {
             String cleared = txt.toString().replaceAll("\\p{P}", "").trim();
             resultWords = cleared.split("\\s+", -1);
             resultWords = Arrays.stream(resultWords).filter(item -> item != null && !"".equals(item)).toArray(String[]::new);
+
+            return new RhymesResult(resultWords, wordWithStress);
         } catch (Exception e) {
             System.out.println(e.getMessage());
+            return new RhymesResult(ErrorCodes.SERVER_ERROR);
         }
-
-        return new RhymesResult(resultWords);
     }
 
     private static String getRhymesResponse(String word, int quality) {

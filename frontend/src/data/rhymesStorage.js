@@ -1,48 +1,61 @@
 const rhymesKey = 'rhymes';
-const currentIndexKey = 'current-index';
+const latestIndexKey = 'latest-index';
 const wordsIdxDictKey = 'words';
 const idxWordsDictKey = 'indexes';
 
+const loadedRhymes = 1;
+const calculatedRhymes = 2;
 
-export function setRhymes(word, rhymes = []) {
-    word = word.toLowerCase();
-    rhymes = rhymes.map(r => r.toLowerCase());
 
-    const idx = getIdx(word);
+export function setRhymes(word, rhymes = [], stressDependent) {
+    const idxesData = getIdxWordsData();
+
+    const idx = getIdx(word, idxesData);
     const rhymesData = getRhymesData();
     if (!rhymesData[idx]) {
         rhymesData[idx] = {};
     }
 
-    // rhymes.forEach((r, i) => {
-    //     const id = getIdx(r.toLowerCase());
-    //     if (!rhymesData[id]) {
-    //         rhymesData[id] = {};
-    //     }
-    //     rhymesData[id][idx] = 1;
-    //     rhymesData[idx][id] = 1;
-    //
-    //     rhymes.forEach(((r2, j) => {
-    //         const id2 = getIdx(r2.toLowerCase());
-    //         if (!rhymesData[id2]) {
-    //             rhymesData[id2] = {};
-    //         }
-    //         if (i !== j) {
-    //             rhymesData[id2][id] = 1;
-    //             rhymesData[id][id2] = 1;
-    //         }
-    //     }));
-    // });
+    rhymes.forEach(r => {
+        const id = getIdx(r, idxesData);
+
+        if (!rhymesData[id]) {
+            rhymesData[id] = {};
+        }
+        if (id !== idx) {
+            if (!stressDependent) {
+                rhymesData[idx][id] = loadedRhymes;
+            }
+            rhymesData[id][idx] = loadedRhymes;
+        }
+
+        rhymes.forEach((r2 => {
+            const id2 = getIdx(r2, idxesData);
+            if (!rhymesData[id2]) {
+                rhymesData[id2] = {};
+            }
+            if (id !== id2) {
+                rhymesData[id2][id] = loadedRhymes;
+                rhymesData[id][id2] = loadedRhymes;
+            }
+        }));
+    });
 
     localStorage.setItem(rhymesKey, JSON.stringify(rhymesData));
 }
 
 export function getRhymes(word) {
-    word = word.toLowerCase();
-
     const idx = getIdx(word);
     const rhymesData = getRhymesData();
-    return Object.keys(rhymesData[idx] || {}).map(i => getWord(i));
+    const rhymes = rhymesData[idx] || {};
+    const rhymesIdxs = Object.keys(rhymes);
+    const wasLoaded = rhymesIdxs.reduce((val, i) => {
+        return val || rhymes[i] === loadedRhymes
+    }, false)
+    return {
+        rhymes: rhymesIdxs.map(i => getWord(i)).sort(),
+        needToLoad: !wasLoaded || rhymesIdxs.length === 0
+    }
 }
 
 function getRhymesData() {
@@ -69,13 +82,11 @@ function getWord(idx) {
     return getWordsIdxData()[idx];
 }
 
-function getIdx(word) {
-    const idxes = getIdxWordsData();
-
+function getIdx(word, idxes = getIdxWordsData()) {
     let idx = idxes[word];
     if (!idx) {
-        idx = getCurrentIdx() ? getCurrentIdx() + 1 : 1;
-        setCurrentIdx(idx);
+        idx = getLatestIdx() ? getLatestIdx() + 1 : 1;
+        setLatestIdx(idx);
         idxes[word] = idx;
 
         let words = getWordsIdxData();
@@ -87,10 +98,10 @@ function getIdx(word) {
     return idx;
 }
 
-function getCurrentIdx() {
-    return parseInt(localStorage.getItem(currentIndexKey), 10);
+function getLatestIdx() {
+    return parseInt(localStorage.getItem(latestIndexKey), 10);
 }
 
-function setCurrentIdx(value) {
-    localStorage.setItem(currentIndexKey, value);
+function setLatestIdx(value) {
+    localStorage.setItem(latestIndexKey, value);
 }

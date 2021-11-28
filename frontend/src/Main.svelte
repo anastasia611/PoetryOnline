@@ -1,131 +1,129 @@
 <script>
-    import Poem from "./Poem.svelte";
-    import Helper from "./Helper.svelte";
-    import IconButton from "./IconButton.svelte";
-    import * as history from "./data/localhistory";
-    import { stanzasToString } from "./common/strings";
+  import Poem from "./Poem.svelte";
+  import Helper from "./Helper.svelte";
+  import IconButton from "./IconButton.svelte";
+  import * as history from "./data/localhistory";
+  import { stanzasToString } from "./common/strings";
 
-    const email = "anastasia.rv611@gmail.com";
+  const email = "anastasia.rv611@gmail.com";
 
-    const startYear = 2021;
-    const date = new Date();
-    const year = date.getFullYear();
-    let yearRecord;
+  const startYear = 2021;
+  const date = new Date();
+  const year = date.getFullYear();
+  let yearRecord;
 
-    export let stanzas = [];
-    export let poemTitle = 'Silentium';
+  export let stanzas = [];
+  export let poemTitle = "Silentium";
 
-    const pageTitle = 'Поэт.Онлайн';
+  const pageTitle = "Поэт.Онлайн";
 
-    let revision = 0;
-    const storedData = history.getLatest();
-    if (storedData) {
-        const { data, revision } = history.getLatest();
-        stanzas = data && data.stanzas || stanzas;
-        poemTitle = data && data.title || poemTitle;
-    } else {
-        history.save(poemTitle, stanzas);
+  let revision = 0;
+  const storedData = history.getLatest();
+  if (storedData) {
+    const { data, revision } = history.getLatest();
+    stanzas = (data && data.stanzas) || stanzas;
+    poemTitle = (data && data.title) || poemTitle;
+  } else {
+    history.save(poemTitle, stanzas);
+  }
+
+  let tooltipIndex = 0;
+  let isTooltipOpen = false;
+  let poemChanged = false;
+
+  document.addEventListener('keydown', e => {
+    if (isTooltipOpen) {
+      e.preventDefault();
+
+      if (e.key === "Escape") {
+        isTooltipOpen = false;
+      } else if (e.key === "Enter") {
+        tooltipIndex++;
+      } else if (e.key === "ArrowLeft") {
+        tooltipIndex--;
+      } else if (e.key === "ArrowRight") {
+        tooltipIndex++;
+      }
     }
 
-    let tooltipIndex = 0;
-    let isTooltipOpen = false;
-    let poemChanged = false;
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key === "z") {
+        e.preventDefault();
 
-    window.onkeydown = (e) => {
-        if (isTooltipOpen) {
-            e.preventDefault();
-
-            if (e.key === 'Escape') {
-                isTooltipOpen = false;
-            } else if (e.key === 'Enter') {
-                tooltipIndex++;
-            } else if (e.key === 'ArrowLeft') {
-                tooltipIndex--;
-            } else if (e.key === 'ArrowRight') {
-                tooltipIndex++;
-            }
-        }
-
-        if (e.ctrlKey || e.metaKey) {
-            if (e.key === 'z') {
-                e.preventDefault();
-
-                if (e.shiftKey) {
-                    console.log('NEXT');
-                    history.next();
-                } else {
-                    console.log('BACK');
-                    history.back();
-                }
-
-                const storedData = history.getCurrent();
-                if (storedData) {
-                    console.log('STORED', storedData.data.stanzas)
-                    const { data, revision } = storedData;
-                    stanzas = data && data.stanzas || stanzas;
-                    poemTitle = data && data.title || poemTitle;
-                }
-            }
-        }
-    };
-
-    const onPoemChange = ({ detail }) => {
-        poemChanged = true;
-        console.trace()
-        console.log('CH')
-        stanzas = detail.stanzas;
-        poemTitle = detail.title;
-        history.save(poemTitle, stanzas, revision);
-    };
-
-    const onCopy = () => {
-        navigator.clipboard.writeText(stanzasToString(stanzas));
-    };
-
-    $: {
-        if (startYear === year) {
-            yearRecord = year;
+        if (e.shiftKey) {
+          history.next();
         } else {
-            yearRecord = `${startYear} - ${year}`;
+          history.back();
         }
+
+        const storedData = history.getCurrent();
+        if (storedData) {
+          console.log("STORED", storedData.data.stanzas);
+          const { data, revision } = storedData;
+          stanzas = (data && data.stanzas) || stanzas;
+          poemTitle = (data && data.title) || poemTitle;
+        }
+      }
     }
+  });
+
+  const onPoemChange = ({ detail }) => {
+    poemChanged = true;
+    stanzas = detail.stanzas;
+    poemTitle = detail.title;
+    history.save(poemTitle, stanzas, revision);
+  };
+
+  const onCopy = () => {
+    navigator.clipboard.writeText(stanzasToString(stanzas));
+  };
+
+  $: {
+    if (startYear === year) {
+      yearRecord = year;
+    } else {
+      yearRecord = `${startYear} - ${year}`;
+    }
+  }
 </script>
 
 <header>
-    <span class="title">
-        {pageTitle}
-    </span>
-    <ul>
-        <li>
-            {#if navigator.clipboard}
-                <IconButton
-                        icon="copy" iconSize="30" padding="4" color="#444444" opacity="0.7" hoverOpacity="1"
-                        title={"Подсказка"}
-                        on:click={onCopy}/>
-            {/if}
-        </li>
-        <li>
-            <Helper bind:open={isTooltipOpen} bind:tooltipIndex/>
-        </li>
-    </ul>
+  <span class="title">
+    {pageTitle}
+  </span>
+  <ul>
+    <li>
+      {#if navigator.clipboard}
+        <IconButton
+          icon="copy"
+          iconSize="30"
+          padding="4"
+          color="#444444"
+          opacity="0.7"
+          hoverOpacity="1"
+          title={"Подсказка"}
+          on:click={onCopy}
+        />
+      {/if}
+    </li>
+    <li>
+      <Helper bind:open={isTooltipOpen} bind:tooltipIndex />
+    </li>
+  </ul>
 </header>
 <main>
-    <div class="container">
-        <Poem
-                bind:stanzas
-                bind:title={poemTitle}
-                on:changed={onPoemChange}
-        />
-    </div>
+  <div class="container">
+    <Poem bind:stanzas bind:title={poemTitle} on:changed={onPoemChange} />
+  </div>
 </main>
 <footer>
-    <p>По вопросам улучшений и предложений:</p>
-    <p><a href="mailto:{email}">{email}</a></p>
-    <p class="year">©&nbsp;{yearRecord}&nbsp;Поэт.Онлайн</p>
+  <p>По вопросам улучшений и предложений:</p>
+  <p><a href="mailto:{email}">{email}</a></p>
+  <p class="year">©&nbsp;{yearRecord}&nbsp;Поэт.Онлайн</p>
 </footer>
 
 <style lang="scss">
-  @import './styles/_mixins';
+  @import "./styles/_mixins";
 
   header {
     position: fixed;
@@ -138,7 +136,7 @@
     height: 1.5rem;
     width: 100%;
     font-size: 1.5rem;
-    background-color: #F4C8BC;
+    background-color: #f4c8bc;
     box-shadow: 0 4px 6px 0 #b7b1ac;
     z-index: 3;
 
@@ -152,10 +150,6 @@
       list-style: none;
       margin: 0;
       margin-right: 2rem;
-
-      & li {
-        margin-right: 1rem;
-      }
     }
   }
 
@@ -231,6 +225,14 @@
     footer {
       padding-top: 2rem;
       font-size: small;
+    }
+
+    header {
+      & ul {
+        & li {
+          margin-right: 1rem;
+        }
+      }
     }
   }
 </style>

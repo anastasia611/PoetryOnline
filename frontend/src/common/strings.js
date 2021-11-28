@@ -24,6 +24,14 @@ export function isPunctuationMark(str) {
     return str.length === 1 && str.match(punct);
 }
 
+export function getPunctuation(str) {
+    if (!str) return false;
+    let result;
+    while (result = punct.exec(str)) {
+        return str[result.index];
+    }
+}
+
 export function parseWords(str) {
     if (!str) return false;
     return str.split(/\s+|([,\—.;:?!()])/).filter(Boolean);

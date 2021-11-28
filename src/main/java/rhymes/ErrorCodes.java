@@ -1,5 +1,6 @@
 package rhymes;
 
 public enum ErrorCodes {
-    STRESS_NEEDED
+    STRESS_NEEDED,
+    SERVER_ERROR
 }
